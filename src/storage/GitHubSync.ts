@@ -1,4 +1,5 @@
 import { UserData } from '../types';
+import { encode, decode } from 'base-64';
 
 // מנג'ר לסנכרון עם GitHub
 class GitHubSyncManager {
@@ -46,7 +47,7 @@ class GitHubSyncManager {
       }
 
       const data = await response.json();
-      const content = Buffer.from(data.content, 'base64').toString('utf-8');
+      const content = decode(data.content);
       return JSON.parse(content);
     } catch (error) {
       console.error('Error fetching from GitHub:', error);
@@ -82,7 +83,7 @@ class GitHubSyncManager {
       }
 
       // המרת הנתונים ל-base64
-      const content = Buffer.from(JSON.stringify(userData, null, 2)).toString('base64');
+      const content = encode(JSON.stringify(userData, null, 2));
 
       // שליחת הנתונים
       const url = `https://api.github.com/repos/${this.owner}/${this.repo}/contents/${this.dataPath}`;
