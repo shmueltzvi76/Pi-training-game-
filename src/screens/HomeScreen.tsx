@@ -31,25 +31,23 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   };
 
   const handleTrainingMode = () => {
-    // נוסיף ניווט אחר כך
-    console.log('Training mode');
+    navigation?.navigate('Training');
   };
 
   const handleChallengeMode = () => {
-    // נוסיף ניווט אחר כך
-    console.log('Challenge mode');
+    navigation?.navigate('Challenge');
   };
 
   const handleStatistics = () => {
-    console.log('Statistics');
+    navigation?.navigate('Statistics');
   };
 
   const handleNotes = () => {
-    console.log('Notes');
+    navigation?.navigate('Notes');
   };
 
   const handleRecordings = () => {
-    console.log('Recordings');
+    navigation?.navigate('Notes');
   };
 
   return (
