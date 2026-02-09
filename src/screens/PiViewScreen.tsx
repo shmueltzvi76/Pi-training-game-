@@ -16,11 +16,16 @@ import {
   searchReversed,
   findAscendingSequences,
   findDescendingSequences,
+  findDoublePatterns,
+  findDatePatterns,
+  findDigitSumGroups,
+  findEvenOddSequences,
+  findPrimeSequences,
 } from '@constants/piDigits';
 
 const DIGITS_PER_PAGE = 100;
 
-type SearchMode = 'normal' | 'reversed' | 'ascending' | 'descending' | 'repeating' | 'palindrome';
+type SearchMode = 'normal' | 'reversed' | 'ascending' | 'descending' | 'repeating' | 'palindrome' | 'doubles' | 'dates' | 'evenOnly' | 'oddOnly' | 'primes' | 'digitSum';
 
 interface SearchResult {
   positions: number[];
@@ -140,6 +145,49 @@ export const PiViewScreen: React.FC<{ navigation?: any }> = () => {
         label = `פלינדרומים (מינימום ${minSeqLength} ספרות)`;
         break;
       }
+      case 'doubles': {
+        const seqs = findDoublePatterns(minSeqLength);
+        positions = seqs.map(s => s.pos);
+        lengths = seqs.map(s => s.seq.length);
+        label = `תבניות כפולות (מינימום ${minSeqLength} ספרות)`;
+        break;
+      }
+      case 'dates': {
+        const seqs = findDatePatterns();
+        positions = seqs.map(s => s.pos);
+        lengths = seqs.map(() => 4);
+        label = 'תאריכים (DD/MM)';
+        break;
+      }
+      case 'evenOnly': {
+        const seqs = findEvenOddSequences('even', minSeqLength);
+        positions = seqs.map(s => s.pos);
+        lengths = seqs.map(s => s.seq.length);
+        label = `רצפים זוגיים בלבד (מינימום ${minSeqLength})`;
+        break;
+      }
+      case 'oddOnly': {
+        const seqs = findEvenOddSequences('odd', minSeqLength);
+        positions = seqs.map(s => s.pos);
+        lengths = seqs.map(s => s.seq.length);
+        label = `רצפים אי-זוגיים בלבד (מינימום ${minSeqLength})`;
+        break;
+      }
+      case 'primes': {
+        const seqs = findPrimeSequences(minSeqLength);
+        positions = seqs.map(s => s.pos);
+        lengths = seqs.map(s => s.seq.length);
+        label = `מספרים ראשוניים (${minSeqLength} ספרות)`;
+        break;
+      }
+      case 'digitSum': {
+        const targetSum = parseInt(cleanQuery) || 10;
+        const seqs = findDigitSumGroups(targetSum, minSeqLength);
+        positions = seqs.map(s => s.pos);
+        lengths = seqs.map(s => s.seq.length);
+        label = `סכום ספרות = ${targetSum} (קבוצות של ${minSeqLength})`;
+        break;
+      }
     }
 
     setSearchResult({ positions, lengths, label });
@@ -232,13 +280,19 @@ export const PiViewScreen: React.FC<{ navigation?: any }> = () => {
   };
 
   // Advanced search menu items
-  const advancedOptions: { mode: SearchMode; label: string; icon: string; needsQuery: boolean }[] = [
-    { mode: 'normal', label: 'חיפוש רגיל', icon: '1', needsQuery: true },
-    { mode: 'reversed', label: 'חיפוש הפוך', icon: '2', needsQuery: true },
-    { mode: 'ascending', label: 'סדרות עולות', icon: '3', needsQuery: false },
-    { mode: 'descending', label: 'סדרות יורדות', icon: '4', needsQuery: false },
-    { mode: 'repeating', label: 'ספרות חוזרות', icon: '5', needsQuery: false },
-    { mode: 'palindrome', label: 'פלינדרומים', icon: '6', needsQuery: false },
+  const advancedOptions: { mode: SearchMode; label: string; icon: string; needsQuery: boolean; color: string }[] = [
+    { mode: 'normal', label: 'חיפוש רגיל', icon: '🔍', needsQuery: true, color: Theme.colors.primary },
+    { mode: 'reversed', label: 'חיפוש הפוך', icon: '🔄', needsQuery: true, color: Theme.colors.secondary },
+    { mode: 'ascending', label: 'סדרות עולות', icon: '📈', needsQuery: false, color: Theme.colors.success },
+    { mode: 'descending', label: 'סדרות יורדות', icon: '📉', needsQuery: false, color: Theme.colors.warning },
+    { mode: 'repeating', label: 'ספרות חוזרות', icon: '🔁', needsQuery: false, color: Theme.colors.error },
+    { mode: 'palindrome', label: 'פלינדרומים', icon: '🪞', needsQuery: false, color: Theme.colors.info },
+    { mode: 'doubles', label: 'תבניות כפולות', icon: '👯', needsQuery: false, color: Theme.colors.accent },
+    { mode: 'dates', label: 'תאריכים', icon: '📅', needsQuery: false, color: Theme.colors.primaryLight },
+    { mode: 'evenOnly', label: 'רצפים זוגיים', icon: '2️⃣', needsQuery: false, color: Theme.colors.success },
+    { mode: 'oddOnly', label: 'רצפים אי-זוגיים', icon: '1️⃣', needsQuery: false, color: Theme.colors.warning },
+    { mode: 'primes', label: 'מספרים ראשוניים', icon: '✨', needsQuery: false, color: Theme.colors.secondary },
+    { mode: 'digitSum', label: 'סכום ספרות', icon: '➕', needsQuery: true, color: Theme.colors.accent },
   ];
 
   return (
@@ -429,9 +483,11 @@ export const PiViewScreen: React.FC<{ navigation?: any }> = () => {
           onPress={() => setShowAdvancedMenu(false)}
         >
           <View style={styles.modalContent} onStartShouldSetResponder={() => true}>
+            <View style={styles.modalHandle} />
             <Text style={styles.modalTitle}>חיפוש מתקדם</Text>
-            <Text style={styles.modalSubtitle}>בחר סוג חיפוש</Text>
+            <Text style={styles.modalSubtitle}>בחר סוג חיפוש מתוך 12 אלגוריתמים</Text>
 
+            <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
             {advancedOptions.map((option) => (
               <TouchableOpacity
                 key={option.mode}
@@ -449,11 +505,13 @@ export const PiViewScreen: React.FC<{ navigation?: any }> = () => {
                   }
                 }}
               >
-                <Text style={styles.modalOptionIcon}>{option.icon}</Text>
+                <View style={[styles.modalOptionIconWrap, { backgroundColor: option.color + '22' }]}>
+                  <Text style={styles.modalOptionIcon}>{option.icon}</Text>
+                </View>
                 <View style={styles.modalOptionTextWrapper}>
                   <Text style={[
                     styles.modalOptionText,
-                    searchMode === option.mode && styles.modalOptionTextActive,
+                    searchMode === option.mode && { color: option.color },
                   ]}>
                     {option.label}
                   </Text>
@@ -464,12 +522,19 @@ export const PiViewScreen: React.FC<{ navigation?: any }> = () => {
                     {option.mode === 'descending' && 'מצא סדרות כמו 9876, 4321'}
                     {option.mode === 'repeating' && 'מצא ספרות שחוזרות כמו 999, 0000'}
                     {option.mode === 'palindrome' && 'מצא רצפים שניתן לקרוא משני הכיוונים'}
+                    {option.mode === 'doubles' && 'תבנית שחוזרת פעמיים: 1414, 2323'}
+                    {option.mode === 'dates' && 'רצפים שנראים כמו תאריכים DD/MM'}
+                    {option.mode === 'evenOnly' && 'רצפים שכולם ספרות זוגיות: 2, 4, 6, 8, 0'}
+                    {option.mode === 'oddOnly' && 'רצפים שכולם אי-זוגיות: 1, 3, 5, 7, 9'}
+                    {option.mode === 'primes' && 'מצא מספרים ראשוניים בתוך הספרות'}
+                    {option.mode === 'digitSum' && 'הכנס סכום רצוי בשורת החיפוש'}
                   </Text>
                 </View>
               </TouchableOpacity>
             ))}
 
             {/* Minimum length selector */}
+            </ScrollView>
             <View style={styles.modalSection}>
               <Text style={styles.modalSectionTitle}>אורך מינימלי לסדרות:</Text>
               <View style={styles.modalLenRow}>
@@ -782,13 +847,23 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: Theme.colors.background,
-    borderTopLeftRadius: Theme.borderRadius.xl,
-    borderTopRightRadius: Theme.borderRadius.xl,
-    padding: Theme.spacing.lg,
-    maxHeight: '80%',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: Theme.spacing.lg,
+    paddingBottom: Theme.spacing.lg,
+    maxHeight: '85%',
+  },
+  modalHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: Theme.colors.surfaceLight,
+    alignSelf: 'center',
+    marginTop: 12,
+    marginBottom: 16,
   },
   modalTitle: {
-    fontSize: Theme.fontSize.xl,
+    fontSize: Theme.fontSize.xxl,
     color: Theme.colors.text,
     fontWeight: Theme.fontWeight.bold,
     textAlign: 'center',
@@ -798,33 +873,34 @@ const styles = StyleSheet.create({
     fontSize: Theme.fontSize.sm,
     color: Theme.colors.textSecondary,
     textAlign: 'center',
-    marginBottom: Theme.spacing.lg,
+    marginBottom: Theme.spacing.md,
+  },
+  modalScroll: {
+    maxHeight: 380,
   },
   modalOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: Theme.spacing.md,
-    borderRadius: Theme.borderRadius.md,
+    padding: 14,
+    borderRadius: 16,
     marginBottom: 8,
     backgroundColor: Theme.colors.surface,
     gap: 12,
   },
   modalOptionActive: {
     backgroundColor: Theme.colors.primaryDark,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: Theme.colors.primary,
   },
+  modalOptionIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   modalOptionIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: Theme.colors.surfaceLight,
-    color: Theme.colors.primary,
-    fontSize: Theme.fontSize.base,
-    fontWeight: Theme.fontWeight.bold,
-    textAlign: 'center',
-    lineHeight: 32,
-    overflow: 'hidden',
+    fontSize: 20,
   },
   modalOptionTextWrapper: {
     flex: 1,
@@ -832,16 +908,12 @@ const styles = StyleSheet.create({
   modalOptionText: {
     color: Theme.colors.text,
     fontSize: Theme.fontSize.base,
-    fontWeight: Theme.fontWeight.medium,
+    fontWeight: Theme.fontWeight.semibold,
     textAlign: 'right',
-  },
-  modalOptionTextActive: {
-    color: Theme.colors.primaryLight,
-    fontWeight: Theme.fontWeight.bold,
   },
   modalOptionDesc: {
     color: Theme.colors.textMuted,
-    fontSize: Theme.fontSize.xs,
+    fontSize: 11,
     textAlign: 'right',
     marginTop: 2,
   },

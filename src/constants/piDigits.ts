@@ -206,10 +206,10 @@ export const findAscendingSequences = (start: number, end: number, minLength: nu
 export const findDescendingSequences = (start: number, end: number, minLength: number = 3): { pos: number; seq: string }[] => {
   const results: { pos: number; seq: string }[] = [];
   const range = PI_DIGITS.slice(start, end);
-  
+
   let seqStart = 0;
   let seqLen = 1;
-  
+
   for (let i = 1; i < range.length; i++) {
     if (parseInt(range[i]) === parseInt(range[i - 1]) - 1) {
       seqLen++;
@@ -224,13 +224,106 @@ export const findDescendingSequences = (start: number, end: number, minLength: n
       seqLen = 1;
     }
   }
-  
+
   if (seqLen >= minLength) {
     results.push({
       pos: start + seqStart,
       seq: range.slice(seqStart, seqStart + seqLen),
     });
   }
-  
+
+  return results;
+};
+
+// חיפוש כפולות - תבנית שחוזרת פעמיים ברצף (1414, 2323)
+export const findDoublePatterns = (minLen: number = 2): { pos: number; seq: string }[] => {
+  const results: { pos: number; seq: string }[] = [];
+  for (let patLen = minLen; patLen <= 5; patLen++) {
+    for (let i = 0; i <= PI_DIGITS.length - patLen * 2; i++) {
+      const pattern = PI_DIGITS.slice(i, i + patLen);
+      const next = PI_DIGITS.slice(i + patLen, i + patLen * 2);
+      if (pattern === next) {
+        const alreadyFound = results.some(r => i >= r.pos && i < r.pos + r.seq.length);
+        if (!alreadyFound) {
+          results.push({ pos: i, seq: pattern + next });
+        }
+      }
+    }
+  }
+  return results.sort((a, b) => a.pos - b.pos);
+};
+
+// חיפוש תאריכים - רצפים שנראים כמו DDMM
+export const findDatePatterns = (): { pos: number; seq: string; label: string }[] => {
+  const results: { pos: number; seq: string; label: string }[] = [];
+  for (let i = 0; i <= PI_DIGITS.length - 4; i++) {
+    const four = PI_DIGITS.slice(i, i + 4);
+    const dd = parseInt(four.slice(0, 2));
+    const mm = parseInt(four.slice(2, 4));
+    if (dd >= 1 && dd <= 31 && mm >= 1 && mm <= 12) {
+      results.push({ pos: i, seq: four, label: `${dd}/${mm}` });
+    }
+  }
+  return results;
+};
+
+// חיפוש סכום ספרות שווה לערך נתון
+export const findDigitSumGroups = (targetSum: number, groupLen: number = 3): { pos: number; seq: string }[] => {
+  const results: { pos: number; seq: string }[] = [];
+  for (let i = 0; i <= PI_DIGITS.length - groupLen; i++) {
+    const sub = PI_DIGITS.slice(i, i + groupLen);
+    const sum = sub.split('').reduce((s, d) => s + parseInt(d), 0);
+    if (sum === targetSum) {
+      results.push({ pos: i, seq: sub });
+    }
+  }
+  return results;
+};
+
+// חיפוש רצפים זוגיים או אי-זוגיים בלבד
+export const findEvenOddSequences = (type: 'even' | 'odd', minLen: number = 3): { pos: number; seq: string }[] => {
+  const results: { pos: number; seq: string }[] = [];
+  const isMatch = (d: string) => {
+    const n = parseInt(d);
+    return type === 'even' ? n % 2 === 0 : n % 2 === 1;
+  };
+  let seqStart = 0;
+  let seqLen = 0;
+  for (let i = 0; i < PI_DIGITS.length; i++) {
+    if (isMatch(PI_DIGITS[i])) {
+      if (seqLen === 0) seqStart = i;
+      seqLen++;
+    } else {
+      if (seqLen >= minLen) {
+        results.push({ pos: seqStart, seq: PI_DIGITS.slice(seqStart, seqStart + seqLen) });
+      }
+      seqLen = 0;
+    }
+  }
+  if (seqLen >= minLen) {
+    results.push({ pos: seqStart, seq: PI_DIGITS.slice(seqStart, seqStart + seqLen) });
+  }
+  return results;
+};
+
+// חיפוש מספרים ראשוניים
+export const findPrimeSequences = (digitLen: number = 2): { pos: number; seq: string; value: number }[] => {
+  const isPrime = (n: number): boolean => {
+    if (n < 2) return false;
+    if (n < 4) return true;
+    if (n % 2 === 0 || n % 3 === 0) return false;
+    for (let i = 5; i * i <= n; i += 6) {
+      if (n % i === 0 || n % (i + 2) === 0) return false;
+    }
+    return true;
+  };
+  const results: { pos: number; seq: string; value: number }[] = [];
+  for (let i = 0; i <= PI_DIGITS.length - digitLen; i++) {
+    const sub = PI_DIGITS.slice(i, i + digitLen);
+    const num = parseInt(sub);
+    if (isPrime(num)) {
+      results.push({ pos: i, seq: sub, value: num });
+    }
+  }
   return results;
 };

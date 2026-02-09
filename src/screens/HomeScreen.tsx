@@ -1,15 +1,23 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, I18nManager } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  I18nManager,
+  TouchableOpacity,
+} from 'react-native';
 import { Theme } from '@constants/theme';
 import { Button } from '@components/Button';
 import StorageManager from '@storage/StorageManager';
+import { TOTAL_DIGITS } from '@constants/piDigits';
 
 // הפעלת RTL לעברית
 I18nManager.allowRTL(true);
 I18nManager.forceRTL(true);
 
 interface HomeScreenProps {
-  navigation?: any; // נוסיף typing מדויק אחר כך
+  navigation?: any;
 }
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
@@ -30,25 +38,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     }
   };
 
-  const handleTrainingMode = () => {
-    navigation?.navigate('Training');
-  };
+  const nav = (screen: string) => navigation?.navigate(screen);
 
-  const handleChallengeMode = () => {
-    navigation?.navigate('Challenge');
-  };
-
-  const handleStatistics = () => {
-    navigation?.navigate('Statistics');
-  };
-
-  const handleNotes = () => {
-    navigation?.navigate('Notes');
-  };
-
-  const handleRecordings = () => {
-    navigation?.navigate('Recordings');
-  };
+  // Progress percentage
+  const progressPercent = Math.min((totalDigits / TOTAL_DIGITS) * 100, 100);
 
   return (
     <View style={styles.container}>
@@ -56,80 +49,90 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* לוגו ופאי */}
-        <View style={styles.header}>
-          <Text style={styles.piSymbol}>π</Text>
-          <Text style={styles.piValue}>3.14</Text>
+        {/* Hero section */}
+        <View style={styles.hero}>
+          <View style={styles.piCircle}>
+            <Text style={styles.piSymbol}>π</Text>
+          </View>
           <Text style={styles.title}>משחק זיכרון פאי</Text>
           <Text style={styles.subtitle}>אימון וזכירת ספרות פאי</Text>
+          <Text style={styles.piPreview}>3.14159265...</Text>
         </View>
 
-        {/* סטטיסטיקות מהירות */}
-        <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{totalDigits}</Text>
+        {/* Stats cards */}
+        <View style={styles.statsRow}>
+          <View style={[styles.statCard, { borderLeftColor: Theme.colors.primary }]}>
+            <Text style={[styles.statValue, { color: Theme.colors.primary }]}>{totalDigits}</Text>
             <Text style={styles.statLabel}>ספרות שנשלטו</Text>
           </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{currentStreak}</Text>
+          <View style={[styles.statCard, { borderLeftColor: Theme.colors.accent }]}>
+            <Text style={[styles.statValue, { color: Theme.colors.accent }]}>{currentStreak}</Text>
             <Text style={styles.statLabel}>רצף ימים</Text>
+          </View>
+          <View style={[styles.statCard, { borderLeftColor: Theme.colors.secondary }]}>
+            <Text style={[styles.statValue, { color: Theme.colors.secondary }]}>{TOTAL_DIGITS.toLocaleString()}</Text>
+            <Text style={styles.statLabel}>סה"כ זמין</Text>
           </View>
         </View>
 
-        {/* כפתורי מצב משחק */}
-        <View style={styles.modesContainer}>
-          <Button
-            title="מצב אימון"
-            onPress={handleTrainingMode}
-            variant="primary"
-            size="lg"
-            style={styles.modeButton}
-          />
-          <Button
-            title="מצב אתגר"
-            onPress={handleChallengeMode}
-            variant="secondary"
-            size="lg"
-            style={styles.modeButton}
-          />
+        {/* Progress bar */}
+        <View style={styles.progressSection}>
+          <View style={styles.progressHeader}>
+            <Text style={styles.progressTitle}>ההתקדמות שלי</Text>
+            <Text style={styles.progressPercent}>{progressPercent.toFixed(1)}%</Text>
+          </View>
+          <View style={styles.progressBar}>
+            <View style={[styles.progressFill, { width: `${Math.max(progressPercent, 1)}%` }]} />
+          </View>
         </View>
 
-        {/* כפתור רשימת ספרות */}
-        <Button
-          title="רשימת ספרות π"
-          onPress={() => navigation?.navigate('PiView')}
-          variant="outline"
-          size="lg"
-          style={{ marginBottom: Theme.spacing.md, width: '100%' }}
-        />
-
-        {/* כפתורים נוספים */}
-        <View style={styles.additionalButtons}>
-          <Button
-            title="סטטיסטיקות"
-            onPress={handleStatistics}
-            variant="outline"
-            style={styles.additionalButton}
-          />
-          <Button
-            title="פתקים"
-            onPress={handleNotes}
-            variant="outline"
-            style={styles.additionalButton}
-          />
-          <Button
-            title="הקלטות"
-            onPress={handleRecordings}
-            variant="outline"
-            style={styles.additionalButton}
-          />
+        {/* Section: Game modes */}
+        <Text style={styles.sectionTitle}>מצבי משחק</Text>
+        <View style={styles.gameCards}>
+          <TouchableOpacity style={[styles.gameCard, styles.gameCardPrimary]} onPress={() => nav('Training')}>
+            <Text style={styles.gameCardIcon}>🧠</Text>
+            <Text style={styles.gameCardTitle}>אימון</Text>
+            <Text style={styles.gameCardDesc}>למד ותרגל ספרות חדשות</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.gameCard, styles.gameCardSecondary]} onPress={() => nav('Challenge')}>
+            <Text style={styles.gameCardIcon}>🏆</Text>
+            <Text style={styles.gameCardTitle}>אתגר</Text>
+            <Text style={styles.gameCardDesc}>בדוק את עצמך עם טיימר</Text>
+          </TouchableOpacity>
         </View>
 
-        {/* מטרה יומית */}
-        <View style={styles.goalContainer}>
-          <Text style={styles.goalTitle}>היעד היומי שלי</Text>
-          <Text style={styles.goalText}>10-20 ספרות חדשות</Text>
-          <Text style={styles.goalSubtext}>5 פעמים בשבוע</Text>
+        {/* Section: Tools */}
+        <Text style={styles.sectionTitle}>כלים</Text>
+        <View style={styles.toolsGrid}>
+          <TouchableOpacity style={styles.toolCard} onPress={() => nav('PiView')}>
+            <Text style={styles.toolIcon}>🔢</Text>
+            <Text style={styles.toolLabel}>רשימת ספרות</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.toolCard} onPress={() => nav('Statistics')}>
+            <Text style={styles.toolIcon}>📊</Text>
+            <Text style={styles.toolLabel}>סטטיסטיקות</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.toolCard} onPress={() => nav('Notes')}>
+            <Text style={styles.toolIcon}>📝</Text>
+            <Text style={styles.toolLabel}>פתקים</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.toolCard} onPress={() => nav('Recordings')}>
+            <Text style={styles.toolIcon}>🎙️</Text>
+            <Text style={styles.toolLabel}>הקלטות</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.toolCard} onPress={() => nav('Settings')}>
+            <Text style={styles.toolIcon}>⚙️</Text>
+            <Text style={styles.toolLabel}>הגדרות</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Daily goal */}
+        <View style={styles.goalCard}>
+          <View style={styles.goalBadge}>
+            <Text style={styles.goalBadgeText}>יעד יומי</Text>
+          </View>
+          <Text style={styles.goalValue}>10-20 ספרות חדשות</Text>
+          <Text style={styles.goalFrequency}>5 פעמים בשבוע</Text>
         </View>
       </ScrollView>
     </View>
@@ -142,100 +145,208 @@ const styles = StyleSheet.create({
     backgroundColor: Theme.colors.background,
   },
   scrollContent: {
-    padding: Theme.spacing.lg,
+    paddingHorizontal: 20,
+    paddingBottom: 32,
   },
-  header: {
+  // Hero
+  hero: {
     alignItems: 'center',
-    marginTop: Theme.spacing.xl,
-    marginBottom: Theme.spacing.xl,
+    paddingTop: 24,
+    paddingBottom: 28,
+  },
+  piCircle: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: Theme.colors.primary + '20',
+    borderWidth: 3,
+    borderColor: Theme.colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
   },
   piSymbol: {
-    fontSize: 120,
+    fontSize: 56,
     fontWeight: Theme.fontWeight.bold,
     color: Theme.colors.primary,
-    marginBottom: -Theme.spacing.lg,
-  },
-  piValue: {
-    fontSize: Theme.fontSize.xxxl,
-    fontWeight: Theme.fontWeight.medium,
-    color: Theme.colors.primaryLight,
-    marginBottom: Theme.spacing.md,
   },
   title: {
-    fontSize: Theme.fontSize.xxl,
-    fontWeight: Theme.fontWeight.bold,
+    fontSize: 26,
+    fontWeight: Theme.fontWeight.extrabold,
     color: Theme.colors.text,
-    marginBottom: Theme.spacing.xs,
+    marginBottom: 4,
     textAlign: 'center',
+    letterSpacing: 0.5,
   },
   subtitle: {
-    fontSize: Theme.fontSize.base,
-    color: Theme.colors.textSecondary,
-    textAlign: 'center',
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: Theme.spacing.xl,
-    gap: Theme.spacing.md,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: Theme.colors.backgroundCard,
-    borderRadius: Theme.borderRadius.lg,
-    padding: Theme.spacing.lg,
-    alignItems: 'center',
-    ...Theme.shadow.md,
-  },
-  statValue: {
-    fontSize: Theme.fontSize.xxxl,
-    fontWeight: Theme.fontWeight.bold,
-    color: Theme.colors.primary,
-    marginBottom: Theme.spacing.xs,
-  },
-  statLabel: {
     fontSize: Theme.fontSize.sm,
     color: Theme.colors.textSecondary,
     textAlign: 'center',
+    marginBottom: 8,
   },
-  modesContainer: {
-    marginBottom: Theme.spacing.lg,
-    gap: Theme.spacing.md,
+  piPreview: {
+    fontSize: Theme.fontSize.lg,
+    color: Theme.colors.primaryLight,
+    fontFamily: 'monospace',
+    letterSpacing: 2,
   },
-  modeButton: {
-    width: '100%',
-  },
-  additionalButtons: {
+  // Stats
+  statsRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: Theme.spacing.lg,
-    gap: Theme.spacing.sm,
+    gap: 10,
+    marginBottom: 20,
   },
-  additionalButton: {
+  statCard: {
     flex: 1,
-  },
-  goalContainer: {
-    backgroundColor: Theme.colors.backgroundCard,
-    borderRadius: Theme.borderRadius.lg,
-    padding: Theme.spacing.lg,
+    backgroundColor: Theme.colors.surface,
+    borderRadius: 16,
+    padding: 14,
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: Theme.colors.accent,
+    borderLeftWidth: 3,
     ...Theme.shadow.sm,
   },
-  goalTitle: {
-    fontSize: Theme.fontSize.lg,
-    fontWeight: Theme.fontWeight.semibold,
-    color: Theme.colors.text,
-    marginBottom: Theme.spacing.xs,
+  statValue: {
+    fontSize: 22,
+    fontWeight: Theme.fontWeight.bold,
+    marginBottom: 2,
   },
-  goalText: {
+  statLabel: {
+    fontSize: 11,
+    color: Theme.colors.textSecondary,
+    textAlign: 'center',
+  },
+  // Progress
+  progressSection: {
+    backgroundColor: Theme.colors.surface,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 24,
+    ...Theme.shadow.sm,
+  },
+  progressHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  progressTitle: {
+    color: Theme.colors.text,
+    fontSize: Theme.fontSize.base,
+    fontWeight: Theme.fontWeight.semibold,
+  },
+  progressPercent: {
+    color: Theme.colors.accent,
+    fontSize: Theme.fontSize.base,
+    fontWeight: Theme.fontWeight.bold,
+  },
+  progressBar: {
+    height: 8,
+    backgroundColor: Theme.colors.backgroundInput,
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 4,
+    backgroundColor: Theme.colors.accent,
+  },
+  // Section title
+  sectionTitle: {
+    fontSize: Theme.fontSize.lg,
+    fontWeight: Theme.fontWeight.bold,
+    color: Theme.colors.text,
+    marginBottom: 12,
+    textAlign: 'right',
+  },
+  // Game cards
+  gameCards: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 24,
+  },
+  gameCard: {
+    flex: 1,
+    borderRadius: 20,
+    padding: 20,
+    alignItems: 'center',
+    ...Theme.shadow.md,
+  },
+  gameCardPrimary: {
+    backgroundColor: Theme.colors.primary,
+  },
+  gameCardSecondary: {
+    backgroundColor: Theme.colors.secondary,
+  },
+  gameCardIcon: {
+    fontSize: 36,
+    marginBottom: 8,
+  },
+  gameCardTitle: {
+    fontSize: Theme.fontSize.lg,
+    fontWeight: Theme.fontWeight.bold,
+    color: Theme.colors.white,
+    marginBottom: 4,
+  },
+  gameCardDesc: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.8)',
+    textAlign: 'center',
+  },
+  // Tools grid
+  toolsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginBottom: 24,
+  },
+  toolCard: {
+    width: '30%',
+    flexGrow: 1,
+    backgroundColor: Theme.colors.surface,
+    borderRadius: 16,
+    paddingVertical: 16,
+    alignItems: 'center',
+    ...Theme.shadow.sm,
+  },
+  toolIcon: {
+    fontSize: 28,
+    marginBottom: 6,
+  },
+  toolLabel: {
+    fontSize: 12,
+    color: Theme.colors.textSecondary,
+    fontWeight: Theme.fontWeight.medium,
+    textAlign: 'center',
+  },
+  // Goal
+  goalCard: {
+    backgroundColor: Theme.colors.surface,
+    borderRadius: 20,
+    padding: 20,
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: Theme.colors.accent + '40',
+    ...Theme.shadow.sm,
+  },
+  goalBadge: {
+    backgroundColor: Theme.colors.accent + '20',
+    paddingHorizontal: 14,
+    paddingVertical: 4,
+    borderRadius: 20,
+    marginBottom: 10,
+  },
+  goalBadgeText: {
+    color: Theme.colors.accent,
+    fontSize: 12,
+    fontWeight: Theme.fontWeight.bold,
+  },
+  goalValue: {
     fontSize: Theme.fontSize.xl,
     fontWeight: Theme.fontWeight.bold,
-    color: Theme.colors.accent,
-    marginBottom: Theme.spacing.xs,
+    color: Theme.colors.text,
+    marginBottom: 4,
   },
-  goalSubtext: {
+  goalFrequency: {
     fontSize: Theme.fontSize.sm,
     color: Theme.colors.textSecondary,
   },
