@@ -1,13 +1,14 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  TextInput,
 } from 'react-native';
 import { Theme } from '@constants/theme';
-import { PI_DIGITS, TOTAL_DIGITS, formatDigits } from '@constants/piDigits';
+import { PI_DIGITS, TOTAL_DIGITS, searchInPi } from '@constants/piDigits';
 
 const DIGITS_PER_PAGE = 100;
 
@@ -15,6 +16,12 @@ export const PiViewScreen: React.FC<{ navigation?: any }> = () => {
   const [currentPage, setCurrentPage] = useState(0);
   const [groupSize, setGroupSize] = useState<number>(1);
   const [zoomLevel, setZoomLevel] = useState<1 | 2 | 3>(1);
+
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchActive, setSearchActive] = useState(false);
+  const [searchResults, setSearchResults] = useState<number[]>([]);
+  const [currentResultIndex, setCurrentResultIndex] = useState(0);
 
   const totalPages = Math.ceil(TOTAL_DIGITS / DIGITS_PER_PAGE);
   const startDigit = currentPage * DIGITS_PER_PAGE;
@@ -25,17 +32,64 @@ export const PiViewScreen: React.FC<{ navigation?: any }> = () => {
     return PI_DIGITS.slice(startDigit, endDigit);
   }, [startDigit, endDigit]);
 
-  // Format digits based on group size
-  const formattedGroups = useMemo(() => {
-    const groups: { digit: string; index: number }[] = [];
-    for (let i = 0; i < pageDigits.length; i += groupSize) {
-      groups.push({
-        digit: pageDigits.slice(i, i + groupSize),
-        index: startDigit + i,
-      });
+  // Search execution
+  const executeSearch = useCallback((query: string) => {
+    if (!query || query.length === 0) {
+      setSearchResults([]);
+      setSearchActive(false);
+      return;
     }
-    return groups;
-  }, [pageDigits, groupSize, startDigit]);
+    // Only search for digits
+    const cleanQuery = query.replace(/[^0-9]/g, '');
+    if (!cleanQuery) {
+      setSearchResults([]);
+      setSearchActive(false);
+      return;
+    }
+    setSearchQuery(cleanQuery);
+    const results = searchInPi(cleanQuery);
+    setSearchResults(results);
+    setSearchActive(true);
+    setCurrentResultIndex(0);
+
+    // Jump to first result
+    if (results.length > 0) {
+      const page = Math.floor(results[0] / DIGITS_PER_PAGE);
+      setCurrentPage(page);
+    }
+  }, []);
+
+  // Navigate between search results
+  const goToResult = useCallback((index: number) => {
+    if (index < 0 || index >= searchResults.length) return;
+    setCurrentResultIndex(index);
+    const page = Math.floor(searchResults[index] / DIGITS_PER_PAGE);
+    setCurrentPage(page);
+  }, [searchResults]);
+
+  const clearSearch = useCallback(() => {
+    setSearchQuery('');
+    setSearchResults([]);
+    setSearchActive(false);
+    setCurrentResultIndex(0);
+  }, []);
+
+  // Check if a digit position falls within any search result on current page
+  const getHighlightInfo = useCallback((globalIndex: number): 'none' | 'highlight' => {
+    if (!searchActive || searchResults.length === 0 || !searchQuery) return 'none';
+    for (const resultPos of searchResults) {
+      if (globalIndex >= resultPos && globalIndex < resultPos + searchQuery.length) {
+        return 'highlight';
+      }
+    }
+    return 'none';
+  }, [searchActive, searchResults, searchQuery]);
+
+  // Results on current page
+  const resultsOnCurrentPage = useMemo(() => {
+    if (!searchActive) return 0;
+    return searchResults.filter(r => r >= startDigit && r < endDigit).length;
+  }, [searchActive, searchResults, startDigit, endDigit]);
 
   const fontSizes: Record<number, number> = {
     1: zoomLevel === 1 ? 18 : zoomLevel === 2 ? 24 : 32,
@@ -45,8 +99,121 @@ export const PiViewScreen: React.FC<{ navigation?: any }> = () => {
     10: zoomLevel === 1 ? 12 : zoomLevel === 2 ? 16 : 22,
   };
 
+  // Render individual digits (for highlighting support)
+  const renderDigits = () => {
+    const elements: React.ReactNode[] = [];
+    const fontSize = fontSizes[groupSize] || 18;
+
+    for (let i = 0; i < pageDigits.length; i++) {
+      const globalIdx = startDigit + i;
+      const isHighlighted = getHighlightInfo(globalIdx) === 'highlight';
+      const isGroupEnd = groupSize > 1 && (i + 1) % groupSize === 0;
+
+      elements.push(
+        <Text
+          key={globalIdx}
+          style={[
+            styles.singleDigit,
+            { fontSize },
+            isHighlighted && styles.highlightedDigit,
+          ]}
+        >
+          {pageDigits[i]}
+        </Text>
+      );
+
+      // Add space between groups
+      if (isGroupEnd && i < pageDigits.length - 1) {
+        elements.push(
+          <Text key={`sep-${globalIdx}`} style={[styles.separator, { fontSize }]}>
+            {' '}
+          </Text>
+        );
+      }
+
+      // Add line break every 10 groups for readability
+      if (groupSize > 0 && (i + 1) % (groupSize * 10) === 0 && i < pageDigits.length - 1) {
+        elements.push(
+          <View key={`br-${globalIdx}`} style={styles.lineBreak} />
+        );
+        // Line number
+        elements.push(
+          <Text key={`ln-${globalIdx}`} style={styles.lineNumber}>
+            {globalIdx + 2}
+          </Text>
+        );
+      }
+    }
+
+    return elements;
+  };
+
   return (
     <View style={styles.container}>
+      {/* Search bar */}
+      <View style={styles.searchBar}>
+        <TextInput
+          style={styles.searchInput}
+          value={searchQuery}
+          onChangeText={(text) => {
+            setSearchQuery(text.replace(/[^0-9]/g, ''));
+          }}
+          onSubmitEditing={() => executeSearch(searchQuery)}
+          placeholder="חפש רצף ספרות..."
+          placeholderTextColor={Theme.colors.textMuted}
+          keyboardType="numeric"
+          returnKeyType="search"
+        />
+        {searchQuery.length > 0 && (
+          <TouchableOpacity style={styles.clearBtn} onPress={clearSearch}>
+            <Text style={styles.clearBtnText}>X</Text>
+          </TouchableOpacity>
+        )}
+        <TouchableOpacity
+          style={styles.searchBtn}
+          onPress={() => executeSearch(searchQuery)}
+        >
+          <Text style={styles.searchBtnText}>חפש</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Search results info */}
+      {searchActive && (
+        <View style={styles.searchInfo}>
+          <Text style={styles.searchInfoText}>
+            {searchResults.length > 0
+              ? `נמצאו ${searchResults.length} תוצאות | בעמוד הזה: ${resultsOnCurrentPage}`
+              : 'לא נמצאו תוצאות'}
+          </Text>
+          {searchResults.length > 1 && (
+            <View style={styles.searchNav}>
+              <TouchableOpacity
+                onPress={() => goToResult(currentResultIndex - 1)}
+                disabled={currentResultIndex === 0}
+                style={[styles.searchNavBtn, currentResultIndex === 0 && styles.searchNavBtnDisabled]}
+              >
+                <Text style={styles.searchNavText}>{'<'} הקודם</Text>
+              </TouchableOpacity>
+              <Text style={styles.searchNavCount}>
+                {currentResultIndex + 1}/{searchResults.length}
+              </Text>
+              <TouchableOpacity
+                onPress={() => goToResult(currentResultIndex + 1)}
+                disabled={currentResultIndex >= searchResults.length - 1}
+                style={[styles.searchNavBtn, currentResultIndex >= searchResults.length - 1 && styles.searchNavBtnDisabled]}
+              >
+                <Text style={styles.searchNavText}>הבא {'>'}</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          {searchResults.length > 0 && (
+            <Text style={styles.searchPosition}>
+              מיקום נוכחי: ספרה {searchResults[currentResultIndex] + 1}
+            </Text>
+          )}
+        </View>
+      )}
+
       {/* Top bar */}
       <View style={styles.topBar}>
         <Text style={styles.pageInfo}>
@@ -86,23 +253,10 @@ export const PiViewScreen: React.FC<{ navigation?: any }> = () => {
             3.
           </Text>
         )}
+        {/* Line number for start */}
+        <Text style={styles.lineNumber}>{startDigit + 1}</Text>
         <View style={styles.digitsGrid}>
-          {formattedGroups.map((group, idx) => (
-            <View key={idx} style={styles.digitWrapper}>
-              <Text
-                style={[
-                  styles.digitText,
-                  { fontSize: fontSizes[groupSize] || 18 },
-                ]}
-              >
-                {group.digit}
-              </Text>
-              {/* Show position every 10 groups */}
-              {idx % 10 === 0 && (
-                <Text style={styles.digitIndex}>{group.index + 1}</Text>
-              )}
-            </View>
-          ))}
+          {renderDigits()}
         </View>
       </ScrollView>
 
@@ -165,6 +319,94 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Theme.colors.background,
+  },
+  // Search bar
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Theme.spacing.sm,
+    paddingVertical: Theme.spacing.sm,
+    backgroundColor: Theme.colors.surface,
+    gap: 6,
+  },
+  searchInput: {
+    flex: 1,
+    backgroundColor: Theme.colors.backgroundInput,
+    borderRadius: Theme.borderRadius.md,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    color: Theme.colors.text,
+    fontSize: Theme.fontSize.base,
+    textAlign: 'right',
+  },
+  clearBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: Theme.colors.surfaceLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  clearBtnText: {
+    color: Theme.colors.textSecondary,
+    fontSize: Theme.fontSize.sm,
+    fontWeight: Theme.fontWeight.bold,
+  },
+  searchBtn: {
+    backgroundColor: Theme.colors.primary,
+    borderRadius: Theme.borderRadius.md,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  searchBtnText: {
+    color: Theme.colors.white,
+    fontSize: Theme.fontSize.sm,
+    fontWeight: Theme.fontWeight.bold,
+  },
+  // Search info
+  searchInfo: {
+    backgroundColor: Theme.colors.backgroundCard,
+    paddingHorizontal: Theme.spacing.md,
+    paddingVertical: Theme.spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: Theme.colors.border,
+  },
+  searchInfoText: {
+    color: Theme.colors.accent,
+    fontSize: Theme.fontSize.sm,
+    fontWeight: Theme.fontWeight.medium,
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  searchNav: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 12,
+  },
+  searchNavBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: Theme.borderRadius.sm,
+    backgroundColor: Theme.colors.surface,
+  },
+  searchNavBtnDisabled: {
+    opacity: 0.3,
+  },
+  searchNavText: {
+    color: Theme.colors.primary,
+    fontSize: Theme.fontSize.sm,
+  },
+  searchNavCount: {
+    color: Theme.colors.text,
+    fontSize: Theme.fontSize.sm,
+    fontWeight: Theme.fontWeight.bold,
+  },
+  searchPosition: {
+    color: Theme.colors.textMuted,
+    fontSize: Theme.fontSize.xs,
+    textAlign: 'center',
+    marginTop: 4,
   },
   // Top bar
   topBar: {
@@ -232,24 +474,32 @@ const styles = StyleSheet.create({
   digitsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: 6,
-  },
-  digitWrapper: {
     alignItems: 'center',
-    position: 'relative',
   },
-  digitText: {
+  singleDigit: {
     color: Theme.colors.text,
     fontWeight: Theme.fontWeight.medium,
     fontFamily: 'monospace',
-    letterSpacing: 1,
   },
-  digitIndex: {
-    position: 'absolute',
-    top: -10,
-    fontSize: 8,
+  highlightedDigit: {
+    color: Theme.colors.white,
+    backgroundColor: Theme.colors.secondary,
+    borderRadius: 3,
+    overflow: 'hidden',
+    fontWeight: Theme.fontWeight.bold,
+  },
+  separator: {
+    color: 'transparent',
+  },
+  lineBreak: {
+    width: '100%',
+    height: 8,
+  },
+  lineNumber: {
     color: Theme.colors.textMuted,
+    fontSize: 10,
+    fontFamily: 'monospace',
+    marginBottom: 2,
   },
   // Navigation
   navBar: {
