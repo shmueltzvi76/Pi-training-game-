@@ -6,11 +6,27 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
+  Modal,
 } from 'react-native';
 import { Theme } from '@constants/theme';
-import { PI_DIGITS, TOTAL_DIGITS, searchInPi } from '@constants/piDigits';
+import {
+  PI_DIGITS,
+  TOTAL_DIGITS,
+  searchInPi,
+  searchReversed,
+  findAscendingSequences,
+  findDescendingSequences,
+} from '@constants/piDigits';
 
 const DIGITS_PER_PAGE = 100;
+
+type SearchMode = 'normal' | 'reversed' | 'ascending' | 'descending' | 'repeating' | 'palindrome';
+
+interface SearchResult {
+  positions: number[];
+  lengths: number[]; // length of each match (for variable-length results like sequences)
+  label: string;
+}
 
 export const PiViewScreen: React.FC<{ navigation?: any }> = () => {
   const [currentPage, setCurrentPage] = useState(0);
@@ -20,76 +36,151 @@ export const PiViewScreen: React.FC<{ navigation?: any }> = () => {
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
   const [searchActive, setSearchActive] = useState(false);
-  const [searchResults, setSearchResults] = useState<number[]>([]);
+  const [searchResult, setSearchResult] = useState<SearchResult>({ positions: [], lengths: [], label: '' });
   const [currentResultIndex, setCurrentResultIndex] = useState(0);
+  const [searchMode, setSearchMode] = useState<SearchMode>('normal');
+  const [showAdvancedMenu, setShowAdvancedMenu] = useState(false);
+  const [minSeqLength, setMinSeqLength] = useState(3);
 
   const totalPages = Math.ceil(TOTAL_DIGITS / DIGITS_PER_PAGE);
   const startDigit = currentPage * DIGITS_PER_PAGE;
   const endDigit = Math.min(startDigit + DIGITS_PER_PAGE, TOTAL_DIGITS);
 
-  // Get digits for current page
   const pageDigits = useMemo(() => {
     return PI_DIGITS.slice(startDigit, endDigit);
   }, [startDigit, endDigit]);
 
-  // Search execution
-  const executeSearch = useCallback((query: string) => {
-    if (!query || query.length === 0) {
-      setSearchResults([]);
-      setSearchActive(false);
-      return;
+  // Find repeating digit sequences (e.g., 111, 999, 0000)
+  const findRepeatingDigits = useCallback((minLen: number): { pos: number; seq: string }[] => {
+    const results: { pos: number; seq: string }[] = [];
+    let i = 0;
+    while (i < PI_DIGITS.length) {
+      const digit = PI_DIGITS[i];
+      let len = 1;
+      while (i + len < PI_DIGITS.length && PI_DIGITS[i + len] === digit) {
+        len++;
+      }
+      if (len >= minLen) {
+        results.push({ pos: i, seq: PI_DIGITS.slice(i, i + len) });
+      }
+      i += len;
     }
-    // Only search for digits
+    return results;
+  }, []);
+
+  // Find palindrome sequences
+  const findPalindromes = useCallback((minLen: number): { pos: number; seq: string }[] => {
+    const results: { pos: number; seq: string }[] = [];
+    // Check windows of different sizes
+    for (let len = minLen; len <= Math.min(minLen + 4, 10); len++) {
+      for (let i = 0; i <= PI_DIGITS.length - len; i++) {
+        const sub = PI_DIGITS.slice(i, i + len);
+        const rev = sub.split('').reverse().join('');
+        if (sub === rev) {
+          // Avoid duplicates from overlapping
+          const alreadyFound = results.some(r => i >= r.pos && i < r.pos + r.seq.length);
+          if (!alreadyFound) {
+            results.push({ pos: i, seq: sub });
+          }
+        }
+      }
+    }
+    return results.sort((a, b) => a.pos - b.pos);
+  }, []);
+
+  // Execute search based on mode
+  const executeSearch = useCallback((query: string, mode: SearchMode) => {
+    let positions: number[] = [];
+    let lengths: number[] = [];
+    let label = '';
+
     const cleanQuery = query.replace(/[^0-9]/g, '');
-    if (!cleanQuery) {
-      setSearchResults([]);
-      setSearchActive(false);
-      return;
+
+    switch (mode) {
+      case 'normal': {
+        if (!cleanQuery) return;
+        positions = searchInPi(cleanQuery);
+        lengths = positions.map(() => cleanQuery.length);
+        label = `חיפוש רגיל: "${cleanQuery}"`;
+        break;
+      }
+      case 'reversed': {
+        if (!cleanQuery) return;
+        positions = searchReversed(cleanQuery);
+        const reversedStr = cleanQuery.split('').reverse().join('');
+        lengths = positions.map(() => cleanQuery.length);
+        label = `חיפוש הפוך: "${cleanQuery}" -> "${reversedStr}"`;
+        break;
+      }
+      case 'ascending': {
+        const seqs = findAscendingSequences(0, TOTAL_DIGITS, minSeqLength);
+        positions = seqs.map(s => s.pos);
+        lengths = seqs.map(s => s.seq.length);
+        label = `סדרות עולות (מינימום ${minSeqLength} ספרות)`;
+        break;
+      }
+      case 'descending': {
+        const seqs = findDescendingSequences(0, TOTAL_DIGITS, minSeqLength);
+        positions = seqs.map(s => s.pos);
+        lengths = seqs.map(s => s.seq.length);
+        label = `סדרות יורדות (מינימום ${minSeqLength} ספרות)`;
+        break;
+      }
+      case 'repeating': {
+        const seqs = findRepeatingDigits(minSeqLength);
+        positions = seqs.map(s => s.pos);
+        lengths = seqs.map(s => s.seq.length);
+        label = `ספרות חוזרות (מינימום ${minSeqLength} פעמים)`;
+        break;
+      }
+      case 'palindrome': {
+        const seqs = findPalindromes(minSeqLength);
+        positions = seqs.map(s => s.pos);
+        lengths = seqs.map(s => s.seq.length);
+        label = `פלינדרומים (מינימום ${minSeqLength} ספרות)`;
+        break;
+      }
     }
-    setSearchQuery(cleanQuery);
-    const results = searchInPi(cleanQuery);
-    setSearchResults(results);
+
+    setSearchResult({ positions, lengths, label });
     setSearchActive(true);
     setCurrentResultIndex(0);
 
-    // Jump to first result
-    if (results.length > 0) {
-      const page = Math.floor(results[0] / DIGITS_PER_PAGE);
-      setCurrentPage(page);
+    if (positions.length > 0) {
+      setCurrentPage(Math.floor(positions[0] / DIGITS_PER_PAGE));
     }
-  }, []);
+  }, [minSeqLength, findRepeatingDigits, findPalindromes]);
 
-  // Navigate between search results
   const goToResult = useCallback((index: number) => {
-    if (index < 0 || index >= searchResults.length) return;
+    if (index < 0 || index >= searchResult.positions.length) return;
     setCurrentResultIndex(index);
-    const page = Math.floor(searchResults[index] / DIGITS_PER_PAGE);
-    setCurrentPage(page);
-  }, [searchResults]);
+    setCurrentPage(Math.floor(searchResult.positions[index] / DIGITS_PER_PAGE));
+  }, [searchResult]);
 
   const clearSearch = useCallback(() => {
     setSearchQuery('');
-    setSearchResults([]);
+    setSearchResult({ positions: [], lengths: [], label: '' });
     setSearchActive(false);
     setCurrentResultIndex(0);
   }, []);
 
-  // Check if a digit position falls within any search result on current page
-  const getHighlightInfo = useCallback((globalIndex: number): 'none' | 'highlight' => {
-    if (!searchActive || searchResults.length === 0 || !searchQuery) return 'none';
-    for (const resultPos of searchResults) {
-      if (globalIndex >= resultPos && globalIndex < resultPos + searchQuery.length) {
-        return 'highlight';
+  // Check if a digit position falls within any search result
+  const getHighlightInfo = useCallback((globalIndex: number): 'none' | 'highlight' | 'current' => {
+    if (!searchActive || searchResult.positions.length === 0) return 'none';
+    for (let i = 0; i < searchResult.positions.length; i++) {
+      const pos = searchResult.positions[i];
+      const len = searchResult.lengths[i] || 1;
+      if (globalIndex >= pos && globalIndex < pos + len) {
+        return i === currentResultIndex ? 'current' : 'highlight';
       }
     }
     return 'none';
-  }, [searchActive, searchResults, searchQuery]);
+  }, [searchActive, searchResult, currentResultIndex]);
 
-  // Results on current page
   const resultsOnCurrentPage = useMemo(() => {
     if (!searchActive) return 0;
-    return searchResults.filter(r => r >= startDigit && r < endDigit).length;
-  }, [searchActive, searchResults, startDigit, endDigit]);
+    return searchResult.positions.filter(r => r >= startDigit && r < endDigit).length;
+  }, [searchActive, searchResult, startDigit, endDigit]);
 
   const fontSizes: Record<number, number> = {
     1: zoomLevel === 1 ? 18 : zoomLevel === 2 ? 24 : 32,
@@ -99,14 +190,13 @@ export const PiViewScreen: React.FC<{ navigation?: any }> = () => {
     10: zoomLevel === 1 ? 12 : zoomLevel === 2 ? 16 : 22,
   };
 
-  // Render individual digits (for highlighting support)
   const renderDigits = () => {
     const elements: React.ReactNode[] = [];
     const fontSize = fontSizes[groupSize] || 18;
 
     for (let i = 0; i < pageDigits.length; i++) {
       const globalIdx = startDigit + i;
-      const isHighlighted = getHighlightInfo(globalIdx) === 'highlight';
+      const highlight = getHighlightInfo(globalIdx);
       const isGroupEnd = groupSize > 1 && (i + 1) % groupSize === 0;
 
       elements.push(
@@ -115,14 +205,14 @@ export const PiViewScreen: React.FC<{ navigation?: any }> = () => {
           style={[
             styles.singleDigit,
             { fontSize },
-            isHighlighted && styles.highlightedDigit,
+            highlight === 'highlight' && styles.highlightedDigit,
+            highlight === 'current' && styles.currentHighlight,
           ]}
         >
           {pageDigits[i]}
         </Text>
       );
 
-      // Add space between groups
       if (isGroupEnd && i < pageDigits.length - 1) {
         elements.push(
           <Text key={`sep-${globalIdx}`} style={[styles.separator, { fontSize }]}>
@@ -131,34 +221,41 @@ export const PiViewScreen: React.FC<{ navigation?: any }> = () => {
         );
       }
 
-      // Add line break every 10 groups for readability
       if (groupSize > 0 && (i + 1) % (groupSize * 10) === 0 && i < pageDigits.length - 1) {
+        elements.push(<View key={`br-${globalIdx}`} style={styles.lineBreak} />);
         elements.push(
-          <View key={`br-${globalIdx}`} style={styles.lineBreak} />
-        );
-        // Line number
-        elements.push(
-          <Text key={`ln-${globalIdx}`} style={styles.lineNumber}>
-            {globalIdx + 2}
-          </Text>
+          <Text key={`ln-${globalIdx}`} style={styles.lineNumber}>{globalIdx + 2}</Text>
         );
       }
     }
-
     return elements;
   };
+
+  // Advanced search menu items
+  const advancedOptions: { mode: SearchMode; label: string; icon: string; needsQuery: boolean }[] = [
+    { mode: 'normal', label: 'חיפוש רגיל', icon: '1', needsQuery: true },
+    { mode: 'reversed', label: 'חיפוש הפוך', icon: '2', needsQuery: true },
+    { mode: 'ascending', label: 'סדרות עולות', icon: '3', needsQuery: false },
+    { mode: 'descending', label: 'סדרות יורדות', icon: '4', needsQuery: false },
+    { mode: 'repeating', label: 'ספרות חוזרות', icon: '5', needsQuery: false },
+    { mode: 'palindrome', label: 'פלינדרומים', icon: '6', needsQuery: false },
+  ];
 
   return (
     <View style={styles.container}>
       {/* Search bar */}
       <View style={styles.searchBar}>
+        <TouchableOpacity
+          style={styles.advancedBtn}
+          onPress={() => setShowAdvancedMenu(true)}
+        >
+          <Text style={styles.advancedBtnText}>+</Text>
+        </TouchableOpacity>
         <TextInput
           style={styles.searchInput}
           value={searchQuery}
-          onChangeText={(text) => {
-            setSearchQuery(text.replace(/[^0-9]/g, ''));
-          }}
-          onSubmitEditing={() => executeSearch(searchQuery)}
+          onChangeText={(text) => setSearchQuery(text.replace(/[^0-9]/g, ''))}
+          onSubmitEditing={() => executeSearch(searchQuery, searchMode)}
           placeholder="חפש רצף ספרות..."
           placeholderTextColor={Theme.colors.textMuted}
           keyboardType="numeric"
@@ -171,21 +268,34 @@ export const PiViewScreen: React.FC<{ navigation?: any }> = () => {
         )}
         <TouchableOpacity
           style={styles.searchBtn}
-          onPress={() => executeSearch(searchQuery)}
+          onPress={() => executeSearch(searchQuery, searchMode)}
         >
           <Text style={styles.searchBtnText}>חפש</Text>
         </TouchableOpacity>
       </View>
 
+      {/* Active search mode indicator */}
+      {searchMode !== 'normal' && (
+        <View style={styles.modeIndicator}>
+          <Text style={styles.modeIndicatorText}>
+            מצב: {advancedOptions.find(o => o.mode === searchMode)?.label}
+          </Text>
+          <TouchableOpacity onPress={() => { setSearchMode('normal'); clearSearch(); }}>
+            <Text style={styles.modeResetText}>איפוס</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* Search results info */}
       {searchActive && (
         <View style={styles.searchInfo}>
+          <Text style={styles.searchInfoLabel}>{searchResult.label}</Text>
           <Text style={styles.searchInfoText}>
-            {searchResults.length > 0
-              ? `נמצאו ${searchResults.length} תוצאות | בעמוד הזה: ${resultsOnCurrentPage}`
+            {searchResult.positions.length > 0
+              ? `נמצאו ${searchResult.positions.length} תוצאות | בעמוד: ${resultsOnCurrentPage}`
               : 'לא נמצאו תוצאות'}
           </Text>
-          {searchResults.length > 1 && (
+          {searchResult.positions.length > 1 && (
             <View style={styles.searchNav}>
               <TouchableOpacity
                 onPress={() => goToResult(currentResultIndex - 1)}
@@ -195,20 +305,25 @@ export const PiViewScreen: React.FC<{ navigation?: any }> = () => {
                 <Text style={styles.searchNavText}>{'<'} הקודם</Text>
               </TouchableOpacity>
               <Text style={styles.searchNavCount}>
-                {currentResultIndex + 1}/{searchResults.length}
+                {currentResultIndex + 1}/{searchResult.positions.length}
               </Text>
               <TouchableOpacity
                 onPress={() => goToResult(currentResultIndex + 1)}
-                disabled={currentResultIndex >= searchResults.length - 1}
-                style={[styles.searchNavBtn, currentResultIndex >= searchResults.length - 1 && styles.searchNavBtnDisabled]}
+                disabled={currentResultIndex >= searchResult.positions.length - 1}
+                style={[styles.searchNavBtn, currentResultIndex >= searchResult.positions.length - 1 && styles.searchNavBtnDisabled]}
               >
                 <Text style={styles.searchNavText}>הבא {'>'}</Text>
               </TouchableOpacity>
             </View>
           )}
-          {searchResults.length > 0 && (
+          {searchResult.positions.length > 0 && (
             <Text style={styles.searchPosition}>
-              מיקום נוכחי: ספרה {searchResults[currentResultIndex] + 1}
+              ספרה {searchResult.positions[currentResultIndex] + 1}
+              {' | '}
+              רצף: {PI_DIGITS.slice(
+                searchResult.positions[currentResultIndex],
+                searchResult.positions[currentResultIndex] + (searchResult.lengths[currentResultIndex] || 1)
+              )}
             </Text>
           )}
         </View>
@@ -243,21 +358,12 @@ export const PiViewScreen: React.FC<{ navigation?: any }> = () => {
       </View>
 
       {/* Digits display */}
-      <ScrollView
-        style={styles.digitsScroll}
-        contentContainerStyle={styles.digitsContainer}
-      >
-        {/* Pi prefix on first page */}
+      <ScrollView style={styles.digitsScroll} contentContainerStyle={styles.digitsContainer}>
         {currentPage === 0 && (
-          <Text style={[styles.piPrefix, { fontSize: fontSizes[groupSize] || 18 }]}>
-            3.
-          </Text>
+          <Text style={[styles.piPrefix, { fontSize: fontSizes[groupSize] || 18 }]}>3.</Text>
         )}
-        {/* Line number for start */}
         <Text style={styles.lineNumber}>{startDigit + 1}</Text>
-        <View style={styles.digitsGrid}>
-          {renderDigits()}
-        </View>
+        <View style={styles.digitsGrid}>{renderDigits()}</View>
       </ScrollView>
 
       {/* Navigation bar */}
@@ -277,9 +383,7 @@ export const PiViewScreen: React.FC<{ navigation?: any }> = () => {
           <Text style={styles.navBtnText}>{'<'}</Text>
         </TouchableOpacity>
         <View style={styles.pageIndicator}>
-          <Text style={styles.pageText}>
-            {currentPage + 1} / {totalPages}
-          </Text>
+          <Text style={styles.pageText}>{currentPage + 1} / {totalPages}</Text>
         </View>
         <TouchableOpacity
           style={[styles.navBtn, currentPage >= totalPages - 1 && styles.navBtnDisabled]}
@@ -311,6 +415,90 @@ export const PiViewScreen: React.FC<{ navigation?: any }> = () => {
           </TouchableOpacity>
         ))}
       </View>
+
+      {/* Advanced Search Modal */}
+      <Modal
+        visible={showAdvancedMenu}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowAdvancedMenu(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowAdvancedMenu(false)}
+        >
+          <View style={styles.modalContent} onStartShouldSetResponder={() => true}>
+            <Text style={styles.modalTitle}>חיפוש מתקדם</Text>
+            <Text style={styles.modalSubtitle}>בחר סוג חיפוש</Text>
+
+            {advancedOptions.map((option) => (
+              <TouchableOpacity
+                key={option.mode}
+                style={[
+                  styles.modalOption,
+                  searchMode === option.mode && styles.modalOptionActive,
+                ]}
+                onPress={() => {
+                  setSearchMode(option.mode);
+                  if (!option.needsQuery) {
+                    setShowAdvancedMenu(false);
+                    executeSearch('', option.mode);
+                  } else {
+                    setShowAdvancedMenu(false);
+                  }
+                }}
+              >
+                <Text style={styles.modalOptionIcon}>{option.icon}</Text>
+                <View style={styles.modalOptionTextWrapper}>
+                  <Text style={[
+                    styles.modalOptionText,
+                    searchMode === option.mode && styles.modalOptionTextActive,
+                  ]}>
+                    {option.label}
+                  </Text>
+                  <Text style={styles.modalOptionDesc}>
+                    {option.mode === 'normal' && 'חפש רצף ספרות כמו שהוא'}
+                    {option.mode === 'reversed' && 'חפש את הרצף בסדר הפוך (מהסוף להתחלה)'}
+                    {option.mode === 'ascending' && 'מצא סדרות כמו 1234, 5678'}
+                    {option.mode === 'descending' && 'מצא סדרות כמו 9876, 4321'}
+                    {option.mode === 'repeating' && 'מצא ספרות שחוזרות כמו 999, 0000'}
+                    {option.mode === 'palindrome' && 'מצא רצפים שניתן לקרוא משני הכיוונים'}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+
+            {/* Minimum length selector */}
+            <View style={styles.modalSection}>
+              <Text style={styles.modalSectionTitle}>אורך מינימלי לסדרות:</Text>
+              <View style={styles.modalLenRow}>
+                {[2, 3, 4, 5, 6].map(len => (
+                  <TouchableOpacity
+                    key={len}
+                    style={[styles.modalLenBtn, minSeqLength === len && styles.modalLenBtnActive]}
+                    onPress={() => setMinSeqLength(len)}
+                  >
+                    <Text style={[
+                      styles.modalLenText,
+                      minSeqLength === len && styles.modalLenTextActive,
+                    ]}>
+                      {len}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={styles.modalCloseBtn}
+              onPress={() => setShowAdvancedMenu(false)}
+            >
+              <Text style={styles.modalCloseBtnText}>סגור</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 };
@@ -328,6 +516,19 @@ const styles = StyleSheet.create({
     paddingVertical: Theme.spacing.sm,
     backgroundColor: Theme.colors.surface,
     gap: 6,
+  },
+  advancedBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: Theme.borderRadius.md,
+    backgroundColor: Theme.colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  advancedBtnText: {
+    color: Theme.colors.white,
+    fontSize: Theme.fontSize.xl,
+    fontWeight: Theme.fontWeight.bold,
   },
   searchInput: {
     flex: 1,
@@ -363,6 +564,26 @@ const styles = StyleSheet.create({
     fontSize: Theme.fontSize.sm,
     fontWeight: Theme.fontWeight.bold,
   },
+  // Mode indicator
+  modeIndicator: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: Theme.colors.primaryDark,
+    paddingVertical: 4,
+    paddingHorizontal: Theme.spacing.md,
+  },
+  modeIndicatorText: {
+    color: Theme.colors.primaryLight,
+    fontSize: Theme.fontSize.xs,
+    fontWeight: Theme.fontWeight.medium,
+  },
+  modeResetText: {
+    color: Theme.colors.warning,
+    fontSize: Theme.fontSize.xs,
+    fontWeight: Theme.fontWeight.bold,
+  },
   // Search info
   searchInfo: {
     backgroundColor: Theme.colors.backgroundCard,
@@ -370,6 +591,12 @@ const styles = StyleSheet.create({
     paddingVertical: Theme.spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: Theme.colors.border,
+  },
+  searchInfoLabel: {
+    color: Theme.colors.primaryLight,
+    fontSize: Theme.fontSize.xs,
+    textAlign: 'center',
+    marginBottom: 2,
   },
   searchInfoText: {
     color: Theme.colors.accent,
@@ -390,9 +617,7 @@ const styles = StyleSheet.create({
     borderRadius: Theme.borderRadius.sm,
     backgroundColor: Theme.colors.surface,
   },
-  searchNavBtnDisabled: {
-    opacity: 0.3,
-  },
+  searchNavBtnDisabled: { opacity: 0.3 },
   searchNavText: {
     color: Theme.colors.primary,
     fontSize: Theme.fontSize.sm,
@@ -447,9 +672,7 @@ const styles = StyleSheet.create({
     borderRadius: Theme.borderRadius.full,
     backgroundColor: Theme.colors.surface,
   },
-  groupBtnActive: {
-    backgroundColor: Theme.colors.primary,
-  },
+  groupBtnActive: { backgroundColor: Theme.colors.primary },
   groupBtnText: {
     color: Theme.colors.textSecondary,
     fontSize: Theme.fontSize.sm,
@@ -459,12 +682,8 @@ const styles = StyleSheet.create({
     fontWeight: Theme.fontWeight.bold,
   },
   // Digits
-  digitsScroll: {
-    flex: 1,
-  },
-  digitsContainer: {
-    padding: Theme.spacing.md,
-  },
+  digitsScroll: { flex: 1 },
+  digitsContainer: { padding: Theme.spacing.md },
   piPrefix: {
     color: Theme.colors.accent,
     fontWeight: Theme.fontWeight.bold,
@@ -488,13 +707,15 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     fontWeight: Theme.fontWeight.bold,
   },
-  separator: {
-    color: 'transparent',
+  currentHighlight: {
+    color: Theme.colors.black,
+    backgroundColor: Theme.colors.warning,
+    borderRadius: 3,
+    overflow: 'hidden',
+    fontWeight: Theme.fontWeight.bold,
   },
-  lineBreak: {
-    width: '100%',
-    height: 8,
-  },
+  separator: { color: 'transparent' },
+  lineBreak: { width: '100%', height: 8 },
   lineNumber: {
     color: Theme.colors.textMuted,
     fontSize: 10,
@@ -519,23 +740,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  navBtnDisabled: {
-    opacity: 0.3,
-  },
+  navBtnDisabled: { opacity: 0.3 },
   navBtnText: {
     color: Theme.colors.text,
     fontSize: Theme.fontSize.base,
     fontWeight: Theme.fontWeight.bold,
   },
-  pageIndicator: {
-    paddingHorizontal: 16,
-  },
+  pageIndicator: { paddingHorizontal: 16 },
   pageText: {
     color: Theme.colors.primary,
     fontSize: Theme.fontSize.base,
     fontWeight: Theme.fontWeight.semibold,
   },
-  // Quick jump
   quickJump: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -549,15 +765,133 @@ const styles = StyleSheet.create({
     borderRadius: Theme.borderRadius.sm,
     backgroundColor: Theme.colors.surface,
   },
-  jumpBtnActive: {
-    backgroundColor: Theme.colors.primary,
-  },
+  jumpBtnActive: { backgroundColor: Theme.colors.primary },
   jumpBtnText: {
     color: Theme.colors.textMuted,
     fontSize: Theme.fontSize.xs,
   },
   jumpBtnTextActive: {
     color: Theme.colors.white,
+    fontWeight: Theme.fontWeight.bold,
+  },
+  // Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: Theme.colors.overlay,
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: Theme.colors.background,
+    borderTopLeftRadius: Theme.borderRadius.xl,
+    borderTopRightRadius: Theme.borderRadius.xl,
+    padding: Theme.spacing.lg,
+    maxHeight: '80%',
+  },
+  modalTitle: {
+    fontSize: Theme.fontSize.xl,
+    color: Theme.colors.text,
+    fontWeight: Theme.fontWeight.bold,
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  modalSubtitle: {
+    fontSize: Theme.fontSize.sm,
+    color: Theme.colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: Theme.spacing.lg,
+  },
+  modalOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Theme.spacing.md,
+    borderRadius: Theme.borderRadius.md,
+    marginBottom: 8,
+    backgroundColor: Theme.colors.surface,
+    gap: 12,
+  },
+  modalOptionActive: {
+    backgroundColor: Theme.colors.primaryDark,
+    borderWidth: 1,
+    borderColor: Theme.colors.primary,
+  },
+  modalOptionIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: Theme.colors.surfaceLight,
+    color: Theme.colors.primary,
+    fontSize: Theme.fontSize.base,
+    fontWeight: Theme.fontWeight.bold,
+    textAlign: 'center',
+    lineHeight: 32,
+    overflow: 'hidden',
+  },
+  modalOptionTextWrapper: {
+    flex: 1,
+  },
+  modalOptionText: {
+    color: Theme.colors.text,
+    fontSize: Theme.fontSize.base,
+    fontWeight: Theme.fontWeight.medium,
+    textAlign: 'right',
+  },
+  modalOptionTextActive: {
+    color: Theme.colors.primaryLight,
+    fontWeight: Theme.fontWeight.bold,
+  },
+  modalOptionDesc: {
+    color: Theme.colors.textMuted,
+    fontSize: Theme.fontSize.xs,
+    textAlign: 'right',
+    marginTop: 2,
+  },
+  modalSection: {
+    marginTop: Theme.spacing.md,
+    padding: Theme.spacing.md,
+    backgroundColor: Theme.colors.surface,
+    borderRadius: Theme.borderRadius.md,
+  },
+  modalSectionTitle: {
+    color: Theme.colors.textSecondary,
+    fontSize: Theme.fontSize.sm,
+    textAlign: 'right',
+    marginBottom: 8,
+  },
+  modalLenRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  modalLenBtn: {
+    width: 44,
+    height: 36,
+    borderRadius: Theme.borderRadius.md,
+    backgroundColor: Theme.colors.backgroundInput,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalLenBtnActive: {
+    backgroundColor: Theme.colors.accent,
+  },
+  modalLenText: {
+    color: Theme.colors.textSecondary,
+    fontSize: Theme.fontSize.base,
+    fontWeight: Theme.fontWeight.medium,
+  },
+  modalLenTextActive: {
+    color: Theme.colors.white,
+    fontWeight: Theme.fontWeight.bold,
+  },
+  modalCloseBtn: {
+    marginTop: Theme.spacing.lg,
+    backgroundColor: Theme.colors.primary,
+    borderRadius: Theme.borderRadius.md,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  modalCloseBtnText: {
+    color: Theme.colors.white,
+    fontSize: Theme.fontSize.base,
     fontWeight: Theme.fontWeight.bold,
   },
 });
