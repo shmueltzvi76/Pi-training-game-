@@ -94,6 +94,15 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           />
         </View>
 
+        {/* כפתור רשימת ספרות */}
+        <Button
+          title="רשימת ספרות π"
+          onPress={() => navigation?.navigate('PiView')}
+          variant="outline"
+          size="lg"
+          style={{ marginBottom: Theme.spacing.md, width: '100%' }}
+        />
+
         {/* כפתורים נוספים */}
         <View style={styles.additionalButtons}>
           <Button

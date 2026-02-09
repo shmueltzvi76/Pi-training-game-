@@ -9,6 +9,7 @@ import { ChallengeScreen } from '@screens/ChallengeScreen';
 import { StatisticsScreen } from '@screens/StatisticsScreen';
 import { NotesScreen } from '@screens/NotesScreen';
 import { SettingsScreen } from '@screens/SettingsScreen';
+import { PiViewScreen } from '@screens/PiViewScreen';
 
 const Drawer = createDrawerNavigator();
 
@@ -19,6 +20,7 @@ const CustomDrawerContent = ({ navigation }: any) => {
     { name: 'Training', label: 'אימון', icon: '🧠' },
     { name: 'Challenge', label: 'אתגר', icon: '🏆' },
     { name: 'Statistics', label: 'סטטיסטיקות', icon: '📊' },
+    { name: 'PiView', label: 'רשימת ספרות', icon: '🔢' },
     { name: 'Notes', label: 'פתקים', icon: '📝' },
     { name: 'Settings', label: 'הגדרות', icon: '⚙️' },
   ];
@@ -117,6 +119,11 @@ export const AppNavigator: React.FC = () => {
           name="Statistics"
           component={StatisticsScreen}
           options={{ title: 'סטטיסטיקות' }}
+        />
+        <Drawer.Screen
+          name="PiView"
+          component={PiViewScreen}
+          options={{ title: 'רשימת ספרות' }}
         />
         <Drawer.Screen
           name="Notes"
