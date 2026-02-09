@@ -10,6 +10,7 @@ import { StatisticsScreen } from '@screens/StatisticsScreen';
 import { NotesScreen } from '@screens/NotesScreen';
 import { SettingsScreen } from '@screens/SettingsScreen';
 import { PiViewScreen } from '@screens/PiViewScreen';
+import { RecordingsScreen } from '@screens/RecordingsScreen';
 
 const Drawer = createDrawerNavigator();
 
@@ -22,6 +23,7 @@ const CustomDrawerContent = ({ navigation }: any) => {
     { name: 'Statistics', label: 'סטטיסטיקות', icon: '📊' },
     { name: 'PiView', label: 'רשימת ספרות', icon: '🔢' },
     { name: 'Notes', label: 'פתקים', icon: '📝' },
+    { name: 'Recordings', label: 'הקלטות', icon: '🎙️' },
     { name: 'Settings', label: 'הגדרות', icon: '⚙️' },
   ];
 
@@ -129,6 +131,11 @@ export const AppNavigator: React.FC = () => {
           name="Notes"
           component={NotesScreen}
           options={{ title: 'פתקים' }}
+        />
+        <Drawer.Screen
+          name="Recordings"
+          component={RecordingsScreen}
+          options={{ title: 'הקלטות' }}
         />
         <Drawer.Screen
           name="Settings"

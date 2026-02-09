@@ -47,7 +47,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   };
 
   const handleRecordings = () => {
-    navigation?.navigate('Notes');
+    navigation?.navigate('Recordings');
   };
 
   return (
