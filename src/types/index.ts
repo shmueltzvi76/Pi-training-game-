@@ -99,6 +99,7 @@ export interface UserSettings {
   challengeStartDigitBookmark?: number;    // סימניה - ספרת התחלה באתגר
   challengeLengthBookmark?: number;        // סימניה - אורך אתגר
   trainingStartDigitBookmark?: number;     // סימניה - ספרת התחלה באימון
+  trainingEndDigitBookmark?: number;       // סימניה - ספרת סיום באימון
 }
 
 // נתוני משתמש מלאים

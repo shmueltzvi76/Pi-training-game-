@@ -23,8 +23,11 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
   // Setup state
   const [trainingState, setTrainingState] = useState<TrainingState>('setup');
   const [setupStartDigit, setSetupStartDigit] = useState(1);
+  const [setupEndDigit, setSetupEndDigit] = useState(300);
   const [savedStartDigit, setSavedStartDigit] = useState<number | null>(null);
+  const [savedEndDigit, setSavedEndDigit] = useState<number | null>(null);
   const [startDigitStepIndex, setStartDigitStepIndex] = useState(0);
+  const [endDigitStepIndex, setEndDigitStepIndex] = useState(0);
 
   // Playing state
   const [currentPos, setCurrentPos] = useState(0);
@@ -45,44 +48,59 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
   const timeoutRefs = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   useEffect(() => {
-    loadBookmark();
+    loadBookmarks();
     return () => {
       mountedRef.current = false;
       timeoutRefs.current.forEach(t => clearTimeout(t));
     };
   }, []);
 
-  const loadBookmark = async () => {
+  const loadBookmarks = async () => {
     try {
       const data = await StorageManager.getAllUserData();
       const settings = data.settings;
       if (settings?.trainingStartDigitBookmark) {
         setSavedStartDigit(settings.trainingStartDigitBookmark);
       }
+      if (settings?.trainingEndDigitBookmark) {
+        setSavedEndDigit(settings.trainingEndDigitBookmark);
+      }
     } catch (e) {
       // ignore
     }
   };
 
-  const saveBookmark = async () => {
+  const saveBookmark = async (type: 'start' | 'end') => {
     try {
-      setSavedStartDigit(setupStartDigit);
-      await StorageManager.updateSettings({ trainingStartDigitBookmark: setupStartDigit });
+      if (type === 'start') {
+        setSavedStartDigit(setupStartDigit);
+        await StorageManager.updateSettings({ trainingStartDigitBookmark: setupStartDigit });
+      } else {
+        setSavedEndDigit(setupEndDigit);
+        await StorageManager.updateSettings({ trainingEndDigitBookmark: setupEndDigit });
+      }
     } catch (e) {
       // ignore
     }
   };
 
-  const loadSavedBookmark = () => {
-    if (savedStartDigit !== null) {
+  const loadSavedBookmark = (type: 'start' | 'end') => {
+    if (type === 'start' && savedStartDigit !== null) {
       setSetupStartDigit(savedStartDigit);
+    } else if (type === 'end' && savedEndDigit !== null) {
+      setSetupEndDigit(savedEndDigit);
     }
   };
 
   const getStartDigitStep = () => STEP_PRESETS[startDigitStepIndex];
+  const getEndDigitStep = () => STEP_PRESETS[endDigitStepIndex];
 
   const cycleStartDigitStep = () => {
     setStartDigitStepIndex(prev => (prev + 1) % STEP_PRESETS.length);
+  };
+
+  const cycleEndDigitStep = () => {
+    setEndDigitStepIndex(prev => (prev + 1) % STEP_PRESETS.length);
   };
 
   const adjustStartDigit = (direction: 1 | -1) => {
@@ -90,7 +108,18 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
     setSetupStartDigit(prev => Math.max(1, Math.min(PI_DIGITS.length, prev + direction * step)));
   };
 
+  const adjustEndDigit = (direction: 1 | -1) => {
+    const step = getEndDigitStep();
+    setSetupEndDigit(prev => Math.max(1, Math.min(PI_DIGITS.length, prev + direction * step)));
+  };
+
+  const endPos = setupEndDigit - 1; // 0-based end position
+
   const startTraining = () => {
+    if (setupEndDigit <= setupStartDigit) {
+      Alert.alert('Error', 'End digit must be greater than start digit');
+      return;
+    }
     const pos = setupStartDigit - 1; // convert to 0-based
     setCurrentPos(pos);
     setTrainingState('playing');
@@ -137,9 +166,10 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
       setTotalCorrect(prev => prev + 1);
 
       if (newTyped.length >= groupSize) {
+        const nextPos = currentPos + newTyped.length;
         const t1 = setTimeout(() => {
           if (!mountedRef.current) return;
-          setCurrentPos(prev => prev + newTyped.length);
+          setCurrentPos(nextPos);
           setTypedDigits('');
           setIsCorrect(null);
           setStreak(prev => {
@@ -147,7 +177,15 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
             setBestStreak(best => Math.max(best, newStreak));
             return newStreak;
           });
-          saveProgress(currentPos + newTyped.length);
+          saveProgress(nextPos);
+
+          // Check if reached end digit
+          if (nextPos > endPos) {
+            Alert.alert('Training Complete!', `You reached digit ${setupEndDigit}.`, [
+              { text: 'Restart', onPress: () => resetGame() },
+              { text: 'Back to setup', onPress: () => setTrainingState('setup') },
+            ]);
+          }
         }, 200);
         timeoutRefs.current.push(t1);
       }
@@ -206,8 +244,8 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
           <View style={styles.controlRow}>
             <TouchableOpacity
               style={styles.controlBtn}
-              onPress={loadSavedBookmark}
-              onLongPress={saveBookmark}
+              onPress={() => loadSavedBookmark('start')}
+              onLongPress={() => saveBookmark('start')}
             >
               <Text style={styles.controlBtnText}>{'\u2691'}</Text>
             </TouchableOpacity>
@@ -219,6 +257,27 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
             </TouchableOpacity>
             <TouchableOpacity style={styles.multiplierBtn} onPress={cycleStartDigitStep}>
               <Text style={styles.multiplierBtnText}>x{getStartDigitStep()}</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* End at Digit */}
+          <Text style={styles.settingLabel}>End at Digit {setupEndDigit}</Text>
+          <View style={styles.controlRow}>
+            <TouchableOpacity
+              style={styles.controlBtn}
+              onPress={() => loadSavedBookmark('end')}
+              onLongPress={() => saveBookmark('end')}
+            >
+              <Text style={styles.controlBtnText}>{'\u2691'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.controlBtn} onPress={() => adjustEndDigit(1)}>
+              <Text style={styles.controlBtnText}>+</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.controlBtn} onPress={() => adjustEndDigit(-1)}>
+              <Text style={styles.controlBtnText}>{'\u2212'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.multiplierBtn} onPress={cycleEndDigitStep}>
+              <Text style={styles.multiplierBtnText}>x{getEndDigitStep()}</Text>
             </TouchableOpacity>
           </View>
 
@@ -287,7 +346,7 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
     const { before, current, after } = getVisibleDigits();
     return (
       <View style={styles.learnContainer}>
-        <Text style={styles.learnLabel}>Digit {currentPos + 1}</Text>
+        <Text style={styles.learnLabel}>Digit {currentPos + 1} / {setupEndDigit}</Text>
         <View style={styles.digitDisplay}>
           <Text style={styles.digitsBefore}>{formatDigits(before, groupSize)}</Text>
           <Text style={styles.digitsCurrent}>{formatDigits(current, groupSize)}</Text>
@@ -304,7 +363,7 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.navBtn}
-            onPress={() => setCurrentPos(prev => Math.min(PI_DIGITS.length - groupSize, prev + groupSize))}
+            onPress={() => setCurrentPos(prev => Math.min(endPos, prev + groupSize))}
           >
             <Text style={styles.navBtnText}>Next</Text>
           </TouchableOpacity>
