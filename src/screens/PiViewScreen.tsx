@@ -23,7 +23,10 @@ import {
   findPrimeSequences,
 } from '@constants/piDigits';
 
-const DIGITS_PER_PAGE = 100;
+// ספרות דינמיות לכל עמוד: 500 בלי חלוקה, 440 עם חלוקה
+const getDigitsPerPage = (groupSize: number): number => {
+  return groupSize <= 1 ? 500 : 440;
+};
 
 type SearchMode = 'normal' | 'reversed' | 'ascending' | 'descending' | 'repeating' | 'palindrome' | 'doubles' | 'dates' | 'evenOnly' | 'oddOnly' | 'primes' | 'digitSum';
 
@@ -32,6 +35,15 @@ interface SearchResult {
   lengths: number[]; // length of each match (for variable-length results like sequences)
   label: string;
 }
+
+// חישוב טווחי עמודים מראש - כל עמוד מתחיל מאיפה שהקודם נגמר
+const getPageStart = (page: number, digitsPerPage: number): number => {
+  return page * digitsPerPage;
+};
+
+const getPageForDigit = (digitIndex: number, digitsPerPage: number): number => {
+  return Math.floor(digitIndex / digitsPerPage);
+};
 
 export const PiViewScreen: React.FC<{ navigation?: any }> = () => {
   const [currentPage, setCurrentPage] = useState(0);
@@ -47,9 +59,10 @@ export const PiViewScreen: React.FC<{ navigation?: any }> = () => {
   const [showAdvancedMenu, setShowAdvancedMenu] = useState(false);
   const [minSeqLength, setMinSeqLength] = useState(3);
 
-  const totalPages = Math.ceil(TOTAL_DIGITS / DIGITS_PER_PAGE);
-  const startDigit = currentPage * DIGITS_PER_PAGE;
-  const endDigit = Math.min(startDigit + DIGITS_PER_PAGE, TOTAL_DIGITS);
+  const digitsPerPage = getDigitsPerPage(groupSize);
+  const totalPages = Math.ceil(TOTAL_DIGITS / digitsPerPage);
+  const startDigit = getPageStart(currentPage, digitsPerPage);
+  const endDigit = Math.min(startDigit + digitsPerPage, TOTAL_DIGITS);
 
   const pageDigits = useMemo(() => {
     return PI_DIGITS.slice(startDigit, endDigit);
@@ -203,14 +216,14 @@ export const PiViewScreen: React.FC<{ navigation?: any }> = () => {
     setCurrentResultIndex(0);
 
     if (positions.length > 0) {
-      setCurrentPage(Math.floor(positions[0] / DIGITS_PER_PAGE));
+      setCurrentPage(getPageForDigit(positions[0], digitsPerPage));
     }
   }, [minSeqLength, findRepeatingDigits, findPalindromes]);
 
   const goToResult = useCallback((index: number) => {
     if (index < 0 || index >= searchResult.positions.length) return;
     setCurrentResultIndex(index);
-    setCurrentPage(Math.floor(searchResult.positions[index] / DIGITS_PER_PAGE));
+    setCurrentPage(getPageForDigit(searchResult.positions[index], digitsPerPage));
   }, [searchResult]);
 
   const clearSearch = useCallback(() => {
@@ -410,7 +423,13 @@ export const PiViewScreen: React.FC<{ navigation?: any }> = () => {
           <TouchableOpacity
             key={size}
             style={[styles.groupBtn, groupSize === size && styles.groupBtnActive]}
-            onPress={() => setGroupSize(size)}
+            onPress={() => {
+              // שמור את הספרה הנוכחית ומצא את העמוד החדש
+              const currentDigit = startDigit;
+              setGroupSize(size);
+              const newDpp = getDigitsPerPage(size);
+              setCurrentPage(getPageForDigit(currentDigit, newDpp));
+            }}
           >
             <Text style={[styles.groupBtnText, groupSize === size && styles.groupBtnTextActive]}>
               {size}
@@ -463,19 +482,23 @@ export const PiViewScreen: React.FC<{ navigation?: any }> = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Quick jump */}
+      {/* Quick jump - digit positions */}
       <View style={styles.quickJump}>
-        {[0, 10, 25, 50, 75, 99].map(page => (
-          <TouchableOpacity
-            key={page}
-            style={[styles.jumpBtn, currentPage === page && styles.jumpBtnActive]}
-            onPress={() => setCurrentPage(Math.min(page, totalPages - 1))}
-          >
-            <Text style={[styles.jumpBtnText, currentPage === page && styles.jumpBtnTextActive]}>
-              {page * DIGITS_PER_PAGE + 1}
-            </Text>
-          </TouchableOpacity>
-        ))}
+        {[1, 1000, 2500, 5000, 7500, 10000].map(digitNum => {
+          const targetDigit = Math.min(digitNum - 1, TOTAL_DIGITS - 1);
+          const targetPage = getPageForDigit(targetDigit, digitsPerPage);
+          return (
+            <TouchableOpacity
+              key={digitNum}
+              style={[styles.jumpBtn, currentPage === targetPage && styles.jumpBtnActive]}
+              onPress={() => setCurrentPage(Math.min(targetPage, totalPages - 1))}
+            >
+              <Text style={[styles.jumpBtnText, currentPage === targetPage && styles.jumpBtnTextActive]}>
+                {digitNum}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       {/* Advanced Search Modal */}
