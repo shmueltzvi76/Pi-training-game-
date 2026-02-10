@@ -16,6 +16,9 @@ type ChallengeState = 'setup' | 'playing' | 'finished';
 // Thinking time options: 0 = infinity, otherwise seconds
 const THINKING_TIMES = [0, 60, 30, 20, 15, 10, 5, 3, 2, 1];
 
+// Step multiplier presets
+const STEP_PRESETS = [1, 25, 50, 100, 500];
+
 export const ChallengeScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
   const [state, setState] = useState<ChallengeState>('setup');
   const [startDigit, setStartDigit] = useState(1);
@@ -32,6 +35,10 @@ export const ChallengeScreen: React.FC<{ navigation?: any }> = ({ navigation }) 
   // Bookmarks
   const [savedStartDigit, setSavedStartDigit] = useState<number | null>(null);
   const [savedChallengeLength, setSavedChallengeLength] = useState<number | null>(null);
+
+  // Step multipliers
+  const [startDigitStepIndex, setStartDigitStepIndex] = useState(0);
+  const [challengeLengthStepIndex, setChallengeLengthStepIndex] = useState(0);
 
   // Leaderboard
   const [leaderName, setLeaderName] = useState('---');
@@ -109,12 +116,25 @@ export const ChallengeScreen: React.FC<{ navigation?: any }> = ({ navigation }) 
     return t === 0 ? '\u221E' : `${t}s`;
   };
 
-  const adjustStartDigit = (delta: number) => {
-    setStartDigit(prev => Math.max(1, Math.min(PI_DIGITS.length, prev + delta)));
+  const getStartDigitStep = () => STEP_PRESETS[startDigitStepIndex];
+  const getChallengeLengthStep = () => STEP_PRESETS[challengeLengthStepIndex];
+
+  const cycleStartDigitStep = () => {
+    setStartDigitStepIndex(prev => (prev + 1) % STEP_PRESETS.length);
   };
 
-  const adjustChallengeLength = (delta: number) => {
-    setChallengeLength(prev => Math.max(1, Math.min(PI_DIGITS.length, prev + delta)));
+  const cycleChallengeLengthStep = () => {
+    setChallengeLengthStepIndex(prev => (prev + 1) % STEP_PRESETS.length);
+  };
+
+  const adjustStartDigit = (direction: 1 | -1) => {
+    const step = getStartDigitStep();
+    setStartDigit(prev => Math.max(1, Math.min(PI_DIGITS.length, prev + direction * step)));
+  };
+
+  const adjustChallengeLength = (direction: 1 | -1) => {
+    const step = getChallengeLengthStep();
+    setChallengeLength(prev => Math.max(1, Math.min(PI_DIGITS.length, prev + direction * step)));
   };
 
   const adjustThinkingTime = (direction: 'up' | 'down') => {
@@ -259,8 +279,8 @@ export const ChallengeScreen: React.FC<{ navigation?: any }> = ({ navigation }) 
             <TouchableOpacity style={styles.controlBtn} onPress={() => adjustStartDigit(-1)}>
               <Text style={styles.controlBtnText}>{'\u2212'}</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.multiplierBtn} onPress={() => adjustStartDigit(100)}>
-              <Text style={styles.multiplierBtnText}>x100</Text>
+            <TouchableOpacity style={styles.multiplierBtn} onPress={cycleStartDigitStep}>
+              <Text style={styles.multiplierBtnText}>x{getStartDigitStep()}</Text>
             </TouchableOpacity>
           </View>
 
@@ -280,8 +300,8 @@ export const ChallengeScreen: React.FC<{ navigation?: any }> = ({ navigation }) 
             <TouchableOpacity style={styles.controlBtn} onPress={() => adjustChallengeLength(-1)}>
               <Text style={styles.controlBtnText}>{'\u2212'}</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.multiplierBtn} onPress={() => adjustChallengeLength(500)}>
-              <Text style={styles.multiplierBtnText}>x500</Text>
+            <TouchableOpacity style={styles.multiplierBtn} onPress={cycleChallengeLengthStep}>
+              <Text style={styles.multiplierBtnText}>x{getChallengeLengthStep()}</Text>
             </TouchableOpacity>
           </View>
 

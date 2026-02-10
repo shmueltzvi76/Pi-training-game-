@@ -16,11 +16,15 @@ import StorageManager from '@storage/StorageManager';
 type TrainingState = 'setup' | 'playing';
 type TrainingMode = 'learn' | 'type';
 
+// Step multiplier presets
+const STEP_PRESETS = [1, 25, 50, 100, 500];
+
 export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
   // Setup state
   const [trainingState, setTrainingState] = useState<TrainingState>('setup');
   const [setupStartDigit, setSetupStartDigit] = useState(1);
   const [savedStartDigit, setSavedStartDigit] = useState<number | null>(null);
+  const [startDigitStepIndex, setStartDigitStepIndex] = useState(0);
 
   // Playing state
   const [currentPos, setCurrentPos] = useState(0);
@@ -75,8 +79,15 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
     }
   };
 
-  const adjustStartDigit = (delta: number) => {
-    setSetupStartDigit(prev => Math.max(1, Math.min(PI_DIGITS.length, prev + delta)));
+  const getStartDigitStep = () => STEP_PRESETS[startDigitStepIndex];
+
+  const cycleStartDigitStep = () => {
+    setStartDigitStepIndex(prev => (prev + 1) % STEP_PRESETS.length);
+  };
+
+  const adjustStartDigit = (direction: 1 | -1) => {
+    const step = getStartDigitStep();
+    setSetupStartDigit(prev => Math.max(1, Math.min(PI_DIGITS.length, prev + direction * step)));
   };
 
   const startTraining = () => {
@@ -206,8 +217,8 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
             <TouchableOpacity style={styles.controlBtn} onPress={() => adjustStartDigit(-1)}>
               <Text style={styles.controlBtnText}>{'\u2212'}</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.multiplierBtn} onPress={() => adjustStartDigit(100)}>
-              <Text style={styles.multiplierBtnText}>x100</Text>
+            <TouchableOpacity style={styles.multiplierBtn} onPress={cycleStartDigitStep}>
+              <Text style={styles.multiplierBtnText}>x{getStartDigitStep()}</Text>
             </TouchableOpacity>
           </View>
 
