@@ -23,7 +23,7 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
   // Setup state
   const [trainingState, setTrainingState] = useState<TrainingState>('setup');
   const [setupStartDigit, setSetupStartDigit] = useState(1);
-  const [setupEndDigit, setSetupEndDigit] = useState(300);
+  const [setupEndDigit, setSetupEndDigit] = useState(1);
   const [savedStartDigit, setSavedStartDigit] = useState<number | null>(null);
   const [savedEndDigit, setSavedEndDigit] = useState<number | null>(null);
   const [startDigitStepIndex, setStartDigitStepIndex] = useState(0);
@@ -113,11 +113,13 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
     setSetupEndDigit(prev => Math.max(1, Math.min(PI_DIGITS.length, prev + direction * step)));
   };
 
+  // End limit: only active when endDigit > startDigit
+  const hasEndLimit = setupEndDigit > setupStartDigit;
   const endPos = setupEndDigit - 1; // 0-based end position
 
   const startTraining = () => {
-    if (setupEndDigit <= setupStartDigit) {
-      Alert.alert('Error', 'End digit must be greater than start digit');
+    if (setupEndDigit > 1 && setupEndDigit <= setupStartDigit) {
+      Alert.alert('Error', 'End digit must be greater than start digit, or set to 1 for no limit');
       return;
     }
     const pos = setupStartDigit - 1; // convert to 0-based
@@ -167,9 +169,11 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
 
       if (newTyped.length >= groupSize) {
         const nextPos = currentPos + newTyped.length;
+        // Don't advance past end position (if set)
+        const clampedPos = hasEndLimit ? Math.min(nextPos, endPos + 1) : nextPos;
         const t1 = setTimeout(() => {
           if (!mountedRef.current) return;
-          setCurrentPos(nextPos);
+          setCurrentPos(clampedPos);
           setTypedDigits('');
           setIsCorrect(null);
           setStreak(prev => {
@@ -177,15 +181,7 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
             setBestStreak(best => Math.max(best, newStreak));
             return newStreak;
           });
-          saveProgress(nextPos);
-
-          // Check if reached end digit
-          if (nextPos > endPos) {
-            Alert.alert('Training Complete!', `You reached digit ${setupEndDigit}.`, [
-              { text: 'Restart', onPress: () => resetGame() },
-              { text: 'Back to setup', onPress: () => setTrainingState('setup') },
-            ]);
-          }
+          saveProgress(clampedPos);
         }, 200);
         timeoutRefs.current.push(t1);
       }
@@ -344,9 +340,12 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
   // Learn mode
   const renderLearnMode = () => {
     const { before, current, after } = getVisibleDigits();
+    const maxPos = hasEndLimit ? endPos : PI_DIGITS.length - 1;
     return (
       <View style={styles.learnContainer}>
-        <Text style={styles.learnLabel}>Digit {currentPos + 1} / {setupEndDigit}</Text>
+        <Text style={styles.learnLabel}>
+          Digit {currentPos + 1}{hasEndLimit ? ` / ${setupEndDigit}` : ''}
+        </Text>
         <View style={styles.digitDisplay}>
           <Text style={styles.digitsBefore}>{formatDigits(before, groupSize)}</Text>
           <Text style={styles.digitsCurrent}>{formatDigits(current, groupSize)}</Text>
@@ -363,25 +362,25 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.navBtn}
-            onPress={() => setCurrentPos(prev => Math.min(endPos, prev + groupSize))}
+            onPress={() => setCurrentPos(prev => Math.min(maxPos, prev + groupSize))}
           >
             <Text style={styles.navBtnText}>Next</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.jumpControls}>
-          <TouchableOpacity style={styles.jumpBtn} onPress={() => setCurrentPos(0)}>
+          <TouchableOpacity style={styles.jumpBtn} onPress={() => setCurrentPos(setupStartDigit - 1)}>
             <Text style={styles.jumpBtnText}>Start</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.jumpBtn}
-            onPress={() => setCurrentPos(prev => Math.min(PI_DIGITS.length - 10, prev + 10))}
+            onPress={() => setCurrentPos(prev => Math.min(maxPos, prev + 10))}
           >
             <Text style={styles.jumpBtnText}>+10</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.jumpBtn}
-            onPress={() => setCurrentPos(prev => Math.min(PI_DIGITS.length - 50, prev + 50))}
+            onPress={() => setCurrentPos(prev => Math.min(maxPos, prev + 50))}
           >
             <Text style={styles.jumpBtnText}>+50</Text>
           </TouchableOpacity>
@@ -392,8 +391,22 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
 
   // Type mode
   const renderTypeMode = () => {
+    const startPos0 = setupStartDigit - 1;
+    const typed = currentPos - startPos0;
+    const total = hasEndLimit ? setupEndDigit - setupStartDigit : null;
+    const remaining = total !== null ? Math.max(0, total - typed) : null;
+    const reachedEnd = hasEndLimit && currentPos > endPos;
+
     return (
       <View style={styles.typeContainer}>
+        {/* Progress counter */}
+        <View style={styles.progressCounter}>
+          <Text style={styles.progressCounterText}>
+            {typed} typed{total !== null ? ` / ${total} total` : ''}
+            {remaining !== null ? `  (${remaining} left)` : ''}
+          </Text>
+        </View>
+
         {/* Status bar */}
         <View style={styles.statusBar}>
           <View style={styles.statusItem}>
@@ -412,6 +425,15 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
             </Text>
           </View>
         </View>
+
+        {/* Reached end message */}
+        {reachedEnd && (
+          <View style={styles.endReachedBanner}>
+            <Text style={styles.endReachedText}>
+              Reached end ({setupEndDigit}). {typed} digits typed.
+            </Text>
+          </View>
+        )}
 
         {/* Current digit display */}
         <View style={[
@@ -878,5 +900,33 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: '#999999',
     fontFamily: 'monospace',
+  },
+  // Progress counter
+  progressCounter: {
+    alignItems: 'center',
+    paddingVertical: 8,
+    marginBottom: 4,
+  },
+  progressCounterText: {
+    color: '#14B8A6',
+    fontSize: 16,
+    fontWeight: '600',
+    fontFamily: 'monospace',
+  },
+  // End reached banner
+  endReachedBanner: {
+    backgroundColor: '#1A2A1A',
+    borderWidth: 1,
+    borderColor: '#10B981',
+    padding: 12,
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  endReachedText: {
+    color: '#10B981',
+    fontSize: 14,
+    fontFamily: 'monospace',
+    fontWeight: '600',
   },
 });
