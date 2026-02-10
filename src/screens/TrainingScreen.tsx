@@ -31,6 +31,16 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
   const [totalCorrect, setTotalCorrect] = useState(0);
   const [totalIncorrect, setTotalIncorrect] = useState(0);
   const inputRef = useRef<TextInput>(null);
+  const mountedRef = useRef(true);
+  const timeoutRefs = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+      timeoutRefs.current.forEach(t => clearTimeout(t));
+    };
+  }, []);
 
   // Load saved position
   useEffect(() => {
@@ -86,7 +96,8 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
 
       // Move to next position after typing group
       if (newTyped.length >= groupSize) {
-        setTimeout(() => {
+        const t1 = setTimeout(() => {
+          if (!mountedRef.current) return;
           setCurrentPos(prev => prev + newTyped.length);
           setTypedDigits('');
           setIsCorrect(null);
@@ -97,6 +108,7 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
           });
           saveProgress(currentPos + newTyped.length);
         }, 200);
+        timeoutRefs.current.push(t1);
       }
     } else {
       setIsCorrect(false);
@@ -104,7 +116,7 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
       setStreak(0);
       setLives(prev => {
         if (prev <= 1) {
-          Alert.alert('נגמרו החיים!', `הגעת לספרה ${currentPos}. רוצה להתחיל מחדש?`, [
+          Alert.alert('נגמרו החיים!', `הגעת לספרה ${currentPos + 1}. רוצה להתחיל מחדש?`, [
             { text: 'כן', onPress: () => resetGame() },
             { text: 'המשך מכאן', onPress: () => setLives(3) },
           ]);
@@ -113,10 +125,12 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
         return prev - 1;
       });
       // Flash red then clear
-      setTimeout(() => {
+      const t2 = setTimeout(() => {
+        if (!mountedRef.current) return;
         setTypedDigits('');
         setIsCorrect(null);
       }, 500);
+      timeoutRefs.current.push(t2);
     }
   };
 
@@ -195,9 +209,10 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
           />
           <Button
             title="הבא"
-            onPress={() => setCurrentPos(prev => Math.min(PI_DIGITS.length - 1, prev + groupSize))}
+            onPress={() => setCurrentPos(prev => Math.min(PI_DIGITS.length - groupSize, prev + groupSize))}
             variant="primary"
             size="sm"
+            disabled={currentPos >= PI_DIGITS.length - groupSize}
           />
         </View>
 

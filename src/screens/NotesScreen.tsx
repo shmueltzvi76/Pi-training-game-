@@ -12,7 +12,7 @@ import { Theme } from '@constants/theme';
 import { Button } from '@components/Button';
 import StorageManager from '@storage/StorageManager';
 import { Note } from '../types';
-import { getDigitRange, formatDigits } from '@constants/piDigits';
+import { PI_DIGITS, getDigitRange, formatDigits } from '@constants/piDigits';
 
 export const NotesScreen: React.FC<{ navigation?: any }> = () => {
   const [notes, setNotes] = useState<Note[]>([]);
@@ -37,8 +37,9 @@ export const NotesScreen: React.FC<{ navigation?: any }> = () => {
   };
 
   const saveNote = async () => {
-    const start = parseInt(startDigit) || 0;
-    const end = parseInt(endDigit) || 10;
+    const start = Math.max(0, parseInt(startDigit) || 0);
+    const rawEnd = parseInt(endDigit) || 10;
+    const end = Math.max(start + 1, Math.min(rawEnd, PI_DIGITS.length));
     const digits = getDigitRange(start, end);
 
     const note: Note = editingNote ? {

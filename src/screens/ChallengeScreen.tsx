@@ -30,6 +30,13 @@ export const ChallengeScreen: React.FC<{ navigation?: any }> = () => {
   }, [timerInterval]);
 
   const startChallenge = () => {
+    // Bounds check: ensure we don't go past available digits
+    const safeTarget = Math.min(targetLength, PI_DIGITS.length - startDigit);
+    if (safeTarget <= 0) {
+      Alert.alert('שגיאה', 'אין מספיק ספרות מנקודת ההתחלה שנבחרה');
+      return;
+    }
+    setTargetLength(safeTarget);
     setState('playing');
     setCurrentPos(startDigit);
     setLives(3);
@@ -39,10 +46,13 @@ export const ChallengeScreen: React.FC<{ navigation?: any }> = () => {
     setTimerInterval(interval);
   };
 
-  const endChallenge = (completed: boolean) => {
+  const endChallenge = (completed: boolean, finalCorrect?: number, finalLives?: number) => {
     if (timerInterval) clearInterval(timerInterval);
     setTimerInterval(null);
     setState('finished');
+
+    const savedCorrect = finalCorrect ?? correctCount;
+    const savedLives = finalLives ?? lives;
 
     // Save session
     StorageManager.addSession({
@@ -51,9 +61,9 @@ export const ChallengeScreen: React.FC<{ navigation?: any }> = () => {
       settings: { startDigit, challengeLength: targetLength, thinkingTime: 0 },
       stats: {
         currentPosition: currentPos,
-        correctCount,
-        incorrectCount: 3 - lives,
-        lives,
+        correctCount: savedCorrect,
+        incorrectCount: 3 - savedLives,
+        lives: savedLives,
         timeElapsed: timer,
         bestTime: null,
       },
@@ -67,18 +77,19 @@ export const ChallengeScreen: React.FC<{ navigation?: any }> = () => {
 
     const expected = PI_DIGITS[currentPos];
     if (digit === expected) {
-      setCorrectCount(c => c + 1);
+      const newCorrect = correctCount + 1;
+      setCorrectCount(newCorrect);
       const nextPos = currentPos + 1;
       setCurrentPos(nextPos);
 
       if (nextPos >= startDigit + targetLength) {
-        endChallenge(true);
+        endChallenge(true, newCorrect, lives);
       }
     } else {
       const newLives = lives - 1;
-      setLives(newLives);
+      setLives(Math.max(0, newLives));
       if (newLives <= 0) {
-        endChallenge(false);
+        endChallenge(false, correctCount, 0);
       }
     }
   };
@@ -165,7 +176,7 @@ export const ChallengeScreen: React.FC<{ navigation?: any }> = () => {
   }
 
   // Playing screen
-  const progress = ((currentPos - startDigit) / targetLength) * 100;
+  const progress = targetLength > 0 ? ((currentPos - startDigit) / targetLength) * 100 : 0;
 
   return (
     <View style={styles.container}>

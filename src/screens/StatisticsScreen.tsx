@@ -65,8 +65,8 @@ export const StatisticsScreen: React.FC<{ navigation?: any }> = () => {
       {sessions.length === 0 ? (
         <Text style={styles.emptyText}>עדיין אין אימונים. התחל לתרגל!</Text>
       ) : (
-        sessions.slice(-5).reverse().map((session, index) => (
-          <View key={index} style={styles.sessionCard}>
+        sessions.slice(-5).reverse().map((session) => (
+          <View key={session.id} style={styles.sessionCard}>
             <View style={styles.sessionRow}>
               <Text style={styles.sessionMode}>
                 {session.mode === 'training' ? '🧠 אימון' : '🏆 אתגר'}

@@ -103,14 +103,22 @@ export const PiViewScreen: React.FC<{ navigation?: any }> = () => {
 
     switch (mode) {
       case 'normal': {
-        if (!cleanQuery) return;
+        if (!cleanQuery) {
+          setSearchResult({ positions: [], lengths: [], label: '' });
+          setSearchActive(false);
+          return;
+        }
         positions = searchInPi(cleanQuery);
         lengths = positions.map(() => cleanQuery.length);
         label = `חיפוש רגיל: "${cleanQuery}"`;
         break;
       }
       case 'reversed': {
-        if (!cleanQuery) return;
+        if (!cleanQuery) {
+          setSearchResult({ positions: [], lengths: [], label: '' });
+          setSearchActive(false);
+          return;
+        }
         positions = searchReversed(cleanQuery);
         const reversedStr = cleanQuery.split('').reverse().join('');
         lengths = positions.map(() => cleanQuery.length);
@@ -272,7 +280,7 @@ export const PiViewScreen: React.FC<{ navigation?: any }> = () => {
       if (groupSize > 0 && (i + 1) % (groupSize * 10) === 0 && i < pageDigits.length - 1) {
         elements.push(<View key={`br-${globalIdx}`} style={styles.lineBreak} />);
         elements.push(
-          <Text key={`ln-${globalIdx}`} style={styles.lineNumber}>{globalIdx + 2}</Text>
+          <Text key={`ln-${globalIdx}`} style={styles.lineNumber}>{globalIdx + 2}:</Text>
         );
       }
     }

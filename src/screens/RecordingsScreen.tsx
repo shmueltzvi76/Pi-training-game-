@@ -103,14 +103,14 @@ export const RecordingsScreen: React.FC<{ navigation?: any }> = () => {
         const newRecording: Recording = {
           id: Date.now().toString(),
           title: `הקלטה ${recordings.length + 1}`,
-          description: `${formatTime(recordingDuration)} דקות`,
+          description: `משך: ${formatTime(recordingDuration)}`,
           uri,
           duration: recordingDuration,
           createdAt: new Date().toISOString(),
         };
 
         await StorageManager.addRecording(newRecording);
-        loadRecordings();
+        await loadRecordings();
       }
     } catch (e) {
       console.error('Error stopping recording:', e);
@@ -186,8 +186,9 @@ export const RecordingsScreen: React.FC<{ navigation?: any }> = () => {
   };
 
   const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
+    const safe = Math.max(0, Math.floor(seconds));
+    const m = Math.floor(safe / 60);
+    const s = safe % 60;
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
