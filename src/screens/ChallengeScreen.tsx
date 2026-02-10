@@ -5,60 +5,180 @@ import {
   StyleSheet,
   TouchableOpacity,
   Alert,
+  ScrollView,
 } from 'react-native';
 import { Theme } from '@constants/theme';
 import { PI_DIGITS, getDigitRange } from '@constants/piDigits';
-import { Button } from '@components/Button';
 import StorageManager from '@storage/StorageManager';
 
 type ChallengeState = 'setup' | 'playing' | 'finished';
 
-export const ChallengeScreen: React.FC<{ navigation?: any }> = () => {
+// Thinking time options: 0 = infinity, otherwise seconds
+const THINKING_TIMES = [0, 60, 30, 20, 15, 10, 5, 3, 2, 1];
+
+export const ChallengeScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
   const [state, setState] = useState<ChallengeState>('setup');
-  const [startDigit, setStartDigit] = useState(0);
-  const [targetLength, setTargetLength] = useState(20);
+  const [startDigit, setStartDigit] = useState(1);
+  const [challengeLength, setChallengeLength] = useState(300);
+  const [thinkingTimeIndex, setThinkingTimeIndex] = useState(0); // index into THINKING_TIMES
   const [currentPos, setCurrentPos] = useState(0);
   const [lives, setLives] = useState(3);
   const [correctCount, setCorrectCount] = useState(0);
   const [timer, setTimer] = useState(0);
   const [timerInterval, setTimerInterval] = useState<ReturnType<typeof setInterval> | null>(null);
+  const [thinkingTimer, setThinkingTimer] = useState(0);
+  const [thinkingInterval, setThinkingInterval] = useState<ReturnType<typeof setInterval> | null>(null);
+
+  // Bookmarks
+  const [savedStartDigit, setSavedStartDigit] = useState<number | null>(null);
+  const [savedChallengeLength, setSavedChallengeLength] = useState<number | null>(null);
+
+  // Leaderboard
+  const [leaderName, setLeaderName] = useState('---');
+  const [leaderScore, setLeaderScore] = useState(0);
 
   useEffect(() => {
+    loadBookmarks();
+    loadLeaderboard();
     return () => {
       if (timerInterval) clearInterval(timerInterval);
+      if (thinkingInterval) clearInterval(thinkingInterval);
     };
-  }, [timerInterval]);
+  }, [timerInterval, thinkingInterval]);
+
+  const loadBookmarks = async () => {
+    try {
+      const data = await StorageManager.getAllUserData();
+      const settings = data.settings;
+      if (settings?.challengeStartDigitBookmark) {
+        setSavedStartDigit(settings.challengeStartDigitBookmark);
+      }
+      if (settings?.challengeLengthBookmark) {
+        setSavedChallengeLength(settings.challengeLengthBookmark);
+      }
+    } catch (e) {
+      // ignore
+    }
+  };
+
+  const loadLeaderboard = async () => {
+    try {
+      const data = await StorageManager.getAllUserData();
+      const sessions = data.sessions || [];
+      // Find best completed challenge session
+      let best = 0;
+      sessions.forEach((s: any) => {
+        if (s.mode === 'challenge' && s.completed && s.stats?.correctCount > best) {
+          best = s.stats.correctCount;
+        }
+      });
+      if (best > 0) {
+        setLeaderName('You');
+        setLeaderScore(best);
+      }
+    } catch (e) {
+      // ignore
+    }
+  };
+
+  const saveBookmark = async (type: 'start' | 'length') => {
+    try {
+      if (type === 'start') {
+        setSavedStartDigit(startDigit);
+        await StorageManager.updateSettings({ challengeStartDigitBookmark: startDigit });
+      } else {
+        setSavedChallengeLength(challengeLength);
+        await StorageManager.updateSettings({ challengeLengthBookmark: challengeLength });
+      }
+    } catch (e) {
+      // ignore
+    }
+  };
+
+  const loadBookmark = (type: 'start' | 'length') => {
+    if (type === 'start' && savedStartDigit !== null) {
+      setStartDigit(savedStartDigit);
+    } else if (type === 'length' && savedChallengeLength !== null) {
+      setChallengeLength(savedChallengeLength);
+    }
+  };
+
+  const getThinkingTime = () => THINKING_TIMES[thinkingTimeIndex];
+  const getThinkingTimeDisplay = () => {
+    const t = getThinkingTime();
+    return t === 0 ? '\u221E' : `${t}s`;
+  };
+
+  const adjustStartDigit = (delta: number) => {
+    setStartDigit(prev => Math.max(1, Math.min(PI_DIGITS.length, prev + delta)));
+  };
+
+  const adjustChallengeLength = (delta: number) => {
+    setChallengeLength(prev => Math.max(1, Math.min(PI_DIGITS.length, prev + delta)));
+  };
+
+  const adjustThinkingTime = (direction: 'up' | 'down') => {
+    setThinkingTimeIndex(prev => {
+      if (direction === 'down') return Math.min(prev + 1, THINKING_TIMES.length - 1);
+      return Math.max(prev - 1, 0);
+    });
+  };
 
   const startChallenge = () => {
-    // Bounds check: ensure we don't go past available digits
-    const safeTarget = Math.min(targetLength, PI_DIGITS.length - startDigit);
+    const actualStart = startDigit - 1; // convert to 0-based index
+    const safeTarget = Math.min(challengeLength, PI_DIGITS.length - actualStart);
     if (safeTarget <= 0) {
-      Alert.alert('שגיאה', 'אין מספיק ספרות מנקודת ההתחלה שנבחרה');
+      Alert.alert('Error', 'Not enough digits from the selected start position');
       return;
     }
-    setTargetLength(safeTarget);
+    setChallengeLength(safeTarget);
     setState('playing');
-    setCurrentPos(startDigit);
+    setCurrentPos(actualStart);
     setLives(3);
     setCorrectCount(0);
     setTimer(0);
+
     const interval = setInterval(() => setTimer(t => t + 1), 1000);
     setTimerInterval(interval);
+
+    // Start thinking timer if not infinite
+    const thinkTime = getThinkingTime();
+    if (thinkTime > 0) {
+      setThinkingTimer(thinkTime);
+      const tInterval = setInterval(() => {
+        setThinkingTimer(t => {
+          if (t <= 1) {
+            // Time's up - lose a life
+            setLives(l => {
+              const newLives = l - 1;
+              if (newLives <= 0) {
+                endChallenge(false, correctCount, 0);
+              }
+              return Math.max(0, newLives);
+            });
+            return thinkTime; // reset timer
+          }
+          return t - 1;
+        });
+      }, 1000);
+      setThinkingInterval(tInterval);
+    }
   };
 
   const endChallenge = (completed: boolean, finalCorrect?: number, finalLives?: number) => {
     if (timerInterval) clearInterval(timerInterval);
+    if (thinkingInterval) clearInterval(thinkingInterval);
     setTimerInterval(null);
+    setThinkingInterval(null);
     setState('finished');
 
     const savedCorrect = finalCorrect ?? correctCount;
     const savedLives = finalLives ?? lives;
 
-    // Save session
     StorageManager.addSession({
       id: Date.now().toString(),
       mode: 'challenge',
-      settings: { startDigit, challengeLength: targetLength, thinkingTime: 0 },
+      settings: { startDigit: startDigit - 1, challengeLength, thinkingTime: getThinkingTime() },
       stats: {
         currentPosition: currentPos,
         correctCount: savedCorrect,
@@ -82,7 +202,13 @@ export const ChallengeScreen: React.FC<{ navigation?: any }> = () => {
       const nextPos = currentPos + 1;
       setCurrentPos(nextPos);
 
-      if (nextPos >= startDigit + targetLength) {
+      // Reset thinking timer
+      const thinkTime = getThinkingTime();
+      if (thinkTime > 0) {
+        setThinkingTimer(thinkTime);
+      }
+
+      if (newCorrect >= challengeLength) {
         endChallenge(true, newCorrect, lives);
       }
     } else {
@@ -100,94 +226,158 @@ export const ChallengeScreen: React.FC<{ navigation?: any }> = () => {
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
-  // Setup screen
+  // Setup screen - matching screenshot design
   if (state === 'setup') {
     return (
       <View style={styles.container}>
-        <View style={styles.setupContainer}>
-          <Text style={styles.setupTitle}>הגדרות אתגר</Text>
-
-          <Text style={styles.label}>ספרת התחלה:</Text>
-          <View style={styles.optionRow}>
-            {[0, 10, 50, 100].map(n => (
-              <TouchableOpacity
-                key={n}
-                style={[styles.optionBtn, startDigit === n && styles.optionBtnActive]}
-                onPress={() => setStartDigit(n)}
-              >
-                <Text style={[styles.optionText, startDigit === n && styles.optionTextActive]}>
-                  {n + 1}
-                </Text>
-              </TouchableOpacity>
-            ))}
+        <ScrollView contentContainerStyle={styles.setupScroll} showsVerticalScrollIndicator={false}>
+          {/* Pi logo */}
+          <View style={styles.logoContainer}>
+            <Text style={styles.piSymbol}>{'\u03C0'}</Text>
+            <View style={styles.logoTextContainer}>
+              <Text style={styles.logoLabel}>Pi</Text>
+              <Text style={styles.logoVersion}>3.14</Text>
+            </View>
           </View>
 
-          <Text style={styles.label}>מספר ספרות:</Text>
-          <View style={styles.optionRow}>
-            {[10, 20, 50, 100].map(n => (
-              <TouchableOpacity
-                key={n}
-                style={[styles.optionBtn, targetLength === n && styles.optionBtnActive]}
-                onPress={() => setTargetLength(n)}
-              >
-                <Text style={[styles.optionText, targetLength === n && styles.optionTextActive]}>
-                  {n}
-                </Text>
-              </TouchableOpacity>
-            ))}
+          {/* Title */}
+          <Text style={styles.setupTitle}>Challenge Mode</Text>
+
+          {/* Start at Digit */}
+          <Text style={styles.settingLabel}>Start at Digit {startDigit}</Text>
+          <View style={styles.controlRow}>
+            <TouchableOpacity
+              style={styles.controlBtn}
+              onPress={() => loadBookmark('start')}
+              onLongPress={() => saveBookmark('start')}
+            >
+              <Text style={styles.controlBtnText}>{'\u2691'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.controlBtn} onPress={() => adjustStartDigit(1)}>
+              <Text style={styles.controlBtnText}>+</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.controlBtn} onPress={() => adjustStartDigit(-1)}>
+              <Text style={styles.controlBtnText}>{'\u2212'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.multiplierBtn} onPress={() => adjustStartDigit(100)}>
+              <Text style={styles.multiplierBtnText}>x100</Text>
+            </TouchableOpacity>
           </View>
 
-          <Button
-            title="התחל אתגר!"
-            onPress={startChallenge}
-            variant="secondary"
-            size="lg"
-            style={{ marginTop: 32, width: '100%' }}
-          />
-        </View>
+          {/* Challenge Length */}
+          <Text style={styles.settingLabel}>Challenge Length {challengeLength}</Text>
+          <View style={styles.controlRow}>
+            <TouchableOpacity
+              style={styles.controlBtn}
+              onPress={() => loadBookmark('length')}
+              onLongPress={() => saveBookmark('length')}
+            >
+              <Text style={styles.controlBtnText}>{'\u2691'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.controlBtn} onPress={() => adjustChallengeLength(1)}>
+              <Text style={styles.controlBtnText}>+</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.controlBtn} onPress={() => adjustChallengeLength(-1)}>
+              <Text style={styles.controlBtnText}>{'\u2212'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.multiplierBtn} onPress={() => adjustChallengeLength(500)}>
+              <Text style={styles.multiplierBtnText}>x500</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Thinking Time */}
+          <Text style={styles.settingLabel}>Thinking Time {getThinkingTimeDisplay()}</Text>
+          <View style={styles.controlRow}>
+            <TouchableOpacity style={styles.controlBtn} onPress={() => adjustThinkingTime('up')}>
+              <Text style={styles.controlBtnText}>+</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.controlBtn} onPress={() => adjustThinkingTime('down')}>
+              <Text style={styles.controlBtnText}>{'\u2212'}</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Start button */}
+          <TouchableOpacity style={styles.actionBtn} onPress={startChallenge}>
+            <Text style={styles.actionBtnText}>Start</Text>
+          </TouchableOpacity>
+
+          {/* Leaderboard */}
+          <View style={styles.leaderSection}>
+            <Text style={styles.leaderText}>
+              Leader : {leaderName}
+            </Text>
+            <Text style={styles.leaderText}>
+              {leaderScore > 0 ? `${leaderScore} Digits` : 'No records yet'}
+            </Text>
+          </View>
+
+          {/* World Challenge button */}
+          <TouchableOpacity
+            style={styles.actionBtn}
+            onPress={() => Alert.alert('World Challenge', 'Coming soon!')}
+          >
+            <Text style={styles.actionBtnText}>World Challenge</Text>
+          </TouchableOpacity>
+
+          {/* Return button */}
+          <TouchableOpacity
+            style={styles.actionBtn}
+            onPress={() => navigation?.navigate('Home')}
+          >
+            <Text style={styles.actionBtnText}>Return</Text>
+          </TouchableOpacity>
+        </ScrollView>
       </View>
     );
   }
 
   // Finished screen
   if (state === 'finished') {
-    const completed = correctCount >= targetLength;
+    const completed = correctCount >= challengeLength;
     return (
       <View style={styles.container}>
         <View style={styles.finishedContainer}>
-          <Text style={styles.finishedIcon}>{completed ? '🏆' : '💪'}</Text>
           <Text style={styles.finishedTitle}>
-            {completed ? 'כל הכבוד!' : 'נסיון טוב!'}
+            {completed ? 'Challenge Complete!' : 'Challenge Over'}
           </Text>
-          <Text style={styles.finishedStat}>ספרות נכונות: {correctCount}/{targetLength}</Text>
-          <Text style={styles.finishedStat}>זמן: {formatTime(timer)}</Text>
-          <Text style={styles.finishedStat}>חיים שנשארו: {lives}/3</Text>
+          <Text style={styles.finishedStat}>Correct: {correctCount}/{challengeLength}</Text>
+          <Text style={styles.finishedStat}>Time: {formatTime(timer)}</Text>
+          <Text style={styles.finishedStat}>Lives: {lives}/3</Text>
 
-          <Button
-            title="נסה שוב"
-            onPress={() => setState('setup')}
-            variant="primary"
-            size="lg"
-            style={{ marginTop: 24, width: '100%' }}
-          />
+          <TouchableOpacity style={styles.actionBtn} onPress={() => setState('setup')}>
+            <Text style={styles.actionBtnText}>Try Again</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.actionBtn}
+            onPress={() => navigation?.navigate('Home')}
+          >
+            <Text style={styles.actionBtnText}>Return</Text>
+          </TouchableOpacity>
         </View>
       </View>
     );
   }
 
   // Playing screen
-  const progress = targetLength > 0 ? ((currentPos - startDigit) / targetLength) * 100 : 0;
+  const actualStart = startDigit - 1;
+  const progress = challengeLength > 0 ? ((currentPos - actualStart) / challengeLength) * 100 : 0;
+  const thinkTime = getThinkingTime();
 
   return (
     <View style={styles.container}>
       {/* Status */}
       <View style={styles.playStatus}>
         <Text style={styles.playTimer}>{formatTime(timer)}</Text>
+        {thinkTime > 0 && (
+          <Text style={[styles.playTimer, thinkingTimer <= 3 && { color: '#EF4444' }]}>
+            {thinkingTimer}s
+          </Text>
+        )}
         <Text style={styles.playLives}>
-          {Array(lives).fill('❤️').join('')}
-          {Array(3 - lives).fill('🖤').join('')}
+          {Array(lives).fill('\u2764\uFE0F').join('')}
+          {Array(3 - lives).fill('\uD83D\uDDA4').join('')}
         </Text>
-        <Text style={styles.playProgress}>{correctCount}/{targetLength}</Text>
+        <Text style={styles.playProgress}>{correctCount}/{challengeLength}</Text>
       </View>
 
       {/* Progress bar */}
@@ -230,125 +420,188 @@ export const ChallengeScreen: React.FC<{ navigation?: any }> = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Theme.colors.background,
-    padding: Theme.spacing.md,
+    backgroundColor: '#000000',
   },
-  // Setup
-  setupContainer: {
-    flex: 1,
-    justifyContent: 'center',
+  // Setup screen
+  setupScroll: {
     alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingBottom: 40,
+  },
+  logoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 20,
+    marginBottom: 40,
+  },
+  piSymbol: {
+    fontSize: 80,
+    color: '#CCCCCC',
+    fontStyle: 'italic',
+    fontWeight: '300',
+  },
+  logoTextContainer: {
+    marginLeft: 4,
+  },
+  logoLabel: {
+    fontSize: 20,
+    color: '#CCCCCC',
+    fontWeight: '400',
+  },
+  logoVersion: {
+    fontSize: 20,
+    color: '#CCCCCC',
+    fontWeight: '400',
   },
   setupTitle: {
-    fontSize: Theme.fontSize.xxl,
-    color: Theme.colors.text,
-    fontWeight: Theme.fontWeight.bold,
-    marginBottom: 32,
-  },
-  label: {
-    fontSize: Theme.fontSize.base,
-    color: Theme.colors.textSecondary,
-    marginBottom: 8,
-    alignSelf: 'flex-end',
-  },
-  optionRow: {
-    flexDirection: 'row',
-    gap: 12,
+    fontSize: 28,
+    color: '#CCCCCC',
+    fontWeight: '400',
     marginBottom: 24,
-    width: '100%',
-    justifyContent: 'center',
+    fontFamily: 'monospace',
   },
-  optionBtn: {
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: Theme.borderRadius.md,
-    backgroundColor: Theme.colors.surface,
-    minWidth: 60,
+  settingLabel: {
+    fontSize: 20,
+    color: '#CCCCCC',
+    fontWeight: '400',
+    marginBottom: 8,
+    fontFamily: 'monospace',
+  },
+  controlRow: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 12,
+    marginBottom: 20,
   },
-  optionBtnActive: {
-    backgroundColor: Theme.colors.secondary,
+  controlBtn: {
+    width: 56,
+    height: 56,
+    borderWidth: 1,
+    borderColor: '#666666',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
   },
-  optionText: {
-    color: Theme.colors.textSecondary,
-    fontSize: Theme.fontSize.base,
-    fontWeight: Theme.fontWeight.medium,
+  controlBtnText: {
+    fontSize: 28,
+    color: '#CCCCCC',
+    fontWeight: '300',
   },
-  optionTextActive: {
-    color: Theme.colors.white,
-    fontWeight: Theme.fontWeight.bold,
+  multiplierBtn: {
+    paddingHorizontal: 16,
+    height: 40,
+    borderWidth: 1,
+    borderColor: '#666666',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
+    marginLeft: 8,
+  },
+  multiplierBtnText: {
+    fontSize: 16,
+    color: '#CCCCCC',
+    fontFamily: 'monospace',
+  },
+  actionBtn: {
+    width: '65%',
+    paddingVertical: 14,
+    borderWidth: 1,
+    borderColor: '#666666',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
+    marginBottom: 16,
+  },
+  actionBtnText: {
+    fontSize: 22,
+    color: '#CCCCCC',
+    fontFamily: 'monospace',
+    fontWeight: '400',
+  },
+  leaderSection: {
+    alignItems: 'center',
+    marginVertical: 8,
+  },
+  leaderText: {
+    fontSize: 14,
+    color: '#999999',
+    fontFamily: 'monospace',
   },
   // Finished
   finishedContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  finishedIcon: {
-    fontSize: 64,
-    marginBottom: 16,
+    padding: 24,
   },
   finishedTitle: {
-    fontSize: Theme.fontSize.xxxl,
-    color: Theme.colors.text,
-    fontWeight: Theme.fontWeight.bold,
+    fontSize: 28,
+    color: '#CCCCCC',
+    fontWeight: '400',
     marginBottom: 24,
+    fontFamily: 'monospace',
   },
   finishedStat: {
-    fontSize: Theme.fontSize.lg,
-    color: Theme.colors.textSecondary,
+    fontSize: 18,
+    color: '#999999',
     marginBottom: 8,
+    fontFamily: 'monospace',
   },
   // Playing
   playStatus: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Theme.spacing.md,
+    padding: 16,
   },
   playTimer: {
-    fontSize: Theme.fontSize.xl,
-    color: Theme.colors.text,
-    fontWeight: Theme.fontWeight.bold,
+    fontSize: 20,
+    color: '#CCCCCC',
+    fontWeight: '600',
+    fontFamily: 'monospace',
   },
   playLives: {
-    fontSize: Theme.fontSize.lg,
+    fontSize: 18,
   },
   playProgress: {
-    fontSize: Theme.fontSize.lg,
-    color: Theme.colors.accent,
-    fontWeight: Theme.fontWeight.bold,
+    fontSize: 18,
+    color: '#14B8A6',
+    fontWeight: '600',
+    fontFamily: 'monospace',
   },
   progressBar: {
     height: 6,
-    backgroundColor: Theme.colors.surface,
-    borderRadius: 3,
-    marginBottom: Theme.spacing.xl,
+    backgroundColor: '#333333',
+    marginHorizontal: 16,
+    marginBottom: 24,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    backgroundColor: Theme.colors.secondary,
-    borderRadius: 3,
+    backgroundColor: '#EC4899',
   },
   hintContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: Theme.spacing.xl,
-    backgroundColor: Theme.colors.surface,
-    padding: Theme.spacing.lg,
-    borderRadius: Theme.borderRadius.lg,
+    marginBottom: 24,
+    backgroundColor: '#111111',
+    padding: 20,
+    marginHorizontal: 16,
+    borderWidth: 1,
+    borderColor: '#333333',
   },
   hintText: {
-    fontSize: Theme.fontSize.xxl,
-    color: Theme.colors.textMuted,
+    fontSize: 24,
+    color: '#666666',
     letterSpacing: 3,
+    fontFamily: 'monospace',
   },
   hintCurrent: {
-    fontSize: Theme.fontSize.huge,
-    color: Theme.colors.secondary,
-    fontWeight: Theme.fontWeight.bold,
+    fontSize: 40,
+    color: '#EC4899',
+    fontWeight: '700',
     marginLeft: 8,
   },
   // Number pad
@@ -356,6 +609,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     gap: 8,
+    paddingHorizontal: 16,
   },
   numPadRow: {
     flexDirection: 'row',
@@ -365,19 +619,20 @@ const styles = StyleSheet.create({
   numPadButton: {
     width: 80,
     height: 60,
-    borderRadius: Theme.borderRadius.md,
-    backgroundColor: Theme.colors.surface,
+    borderWidth: 1,
+    borderColor: '#444444',
+    backgroundColor: '#111111',
     alignItems: 'center',
     justifyContent: 'center',
-    ...Theme.shadow.sm,
   },
   numPadEmpty: {
     width: 80,
     height: 60,
   },
   numPadText: {
-    fontSize: Theme.fontSize.xxl,
-    color: Theme.colors.text,
-    fontWeight: Theme.fontWeight.semibold,
+    fontSize: 24,
+    color: '#CCCCCC',
+    fontWeight: '500',
+    fontFamily: 'monospace',
   },
 });

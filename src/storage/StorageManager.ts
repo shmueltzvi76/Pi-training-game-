@@ -17,6 +17,12 @@ class StorageManager {
     await this.autoSync();
   }
 
+  async updateSettings(updates: Partial<UserSettings>): Promise<void> {
+    const current = await this.getSettings();
+    const merged = { ...current, ...updates };
+    await this.saveSettings(merged);
+  }
+
   // === התקדמות יומית ===
   async getDailyProgress(): Promise<DailyProgress[]> {
     return await AsyncStorageManager.getDailyProgress();

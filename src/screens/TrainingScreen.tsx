@@ -13,14 +13,20 @@ import { PI_DIGITS, getDigitRange, formatDigits } from '@constants/piDigits';
 import { Button } from '@components/Button';
 import StorageManager from '@storage/StorageManager';
 
-type TrainingMode = 'learn' | 'type' | 'review';
+type TrainingState = 'setup' | 'playing';
+type TrainingMode = 'learn' | 'type';
 
 export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
-  // Current position in pi digits
+  // Setup state
+  const [trainingState, setTrainingState] = useState<TrainingState>('setup');
+  const [setupStartDigit, setSetupStartDigit] = useState(1);
+  const [savedStartDigit, setSavedStartDigit] = useState<number | null>(null);
+
+  // Playing state
   const [currentPos, setCurrentPos] = useState(0);
   const [mode, setMode] = useState<TrainingMode>('learn');
   const [groupSize, setGroupSize] = useState(1);
-  const [showDigits, setShowDigits] = useState(10); // how many digits visible at once
+  const [showDigits, setShowDigits] = useState(10);
 
   // Typing mode state
   const [typedDigits, setTypedDigits] = useState('');
@@ -34,28 +40,55 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
   const mountedRef = useRef(true);
   const timeoutRefs = useRef<ReturnType<typeof setTimeout>[]>([]);
 
-  // Cleanup on unmount
   useEffect(() => {
+    loadBookmark();
     return () => {
       mountedRef.current = false;
       timeoutRefs.current.forEach(t => clearTimeout(t));
     };
   }, []);
 
-  // Load saved position
-  useEffect(() => {
-    loadProgress();
-  }, []);
-
-  const loadProgress = async () => {
+  const loadBookmark = async () => {
     try {
       const data = await StorageManager.getAllUserData();
-      if (data.totalDigitsMastered) {
-        setCurrentPos(data.totalDigitsMastered);
+      const settings = data.settings;
+      if (settings?.trainingStartDigitBookmark) {
+        setSavedStartDigit(settings.trainingStartDigitBookmark);
       }
     } catch (e) {
-      console.error('Error loading progress:', e);
+      // ignore
     }
+  };
+
+  const saveBookmark = async () => {
+    try {
+      setSavedStartDigit(setupStartDigit);
+      await StorageManager.updateSettings({ trainingStartDigitBookmark: setupStartDigit });
+    } catch (e) {
+      // ignore
+    }
+  };
+
+  const loadSavedBookmark = () => {
+    if (savedStartDigit !== null) {
+      setSetupStartDigit(savedStartDigit);
+    }
+  };
+
+  const adjustStartDigit = (delta: number) => {
+    setSetupStartDigit(prev => Math.max(1, Math.min(PI_DIGITS.length, prev + delta)));
+  };
+
+  const startTraining = () => {
+    const pos = setupStartDigit - 1; // convert to 0-based
+    setCurrentPos(pos);
+    setTrainingState('playing');
+    setTypedDigits('');
+    setIsCorrect(null);
+    setStreak(0);
+    setLives(3);
+    setTotalCorrect(0);
+    setTotalIncorrect(0);
   };
 
   const saveProgress = async (pos: number) => {
@@ -72,7 +105,6 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
     }
   };
 
-  // Get the digits to display in learn mode
   const getVisibleDigits = () => {
     const start = Math.max(0, currentPos - 5);
     const end = Math.min(PI_DIGITS.length, currentPos + showDigits);
@@ -84,7 +116,6 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
     };
   };
 
-  // Handle number pad press in typing mode
   const handleDigitPress = (digit: string) => {
     const expectedDigit = PI_DIGITS[currentPos + typedDigits.length];
 
@@ -94,7 +125,6 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
       setIsCorrect(true);
       setTotalCorrect(prev => prev + 1);
 
-      // Move to next position after typing group
       if (newTyped.length >= groupSize) {
         const t1 = setTimeout(() => {
           if (!mountedRef.current) return;
@@ -116,15 +146,14 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
       setStreak(0);
       setLives(prev => {
         if (prev <= 1) {
-          Alert.alert('נגמרו החיים!', `הגעת לספרה ${currentPos + 1}. רוצה להתחיל מחדש?`, [
-            { text: 'כן', onPress: () => resetGame() },
-            { text: 'המשך מכאן', onPress: () => setLives(3) },
+          Alert.alert('Game Over!', `You reached digit ${currentPos + 1}. Want to restart?`, [
+            { text: 'Yes', onPress: () => resetGame() },
+            { text: 'Continue here', onPress: () => setLives(3) },
           ]);
           return 0;
         }
         return prev - 1;
       });
-      // Flash red then clear
       const t2 = setTimeout(() => {
         if (!mountedRef.current) return;
         setTypedDigits('');
@@ -135,7 +164,7 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
   };
 
   const resetGame = () => {
-    setCurrentPos(0);
+    setCurrentPos(setupStartDigit - 1);
     setTypedDigits('');
     setIsCorrect(null);
     setStreak(0);
@@ -143,6 +172,61 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
     setTotalCorrect(0);
     setTotalIncorrect(0);
   };
+
+  // Setup screen - matching screenshot design
+  if (trainingState === 'setup') {
+    return (
+      <View style={styles.container}>
+        <ScrollView contentContainerStyle={styles.setupScroll} showsVerticalScrollIndicator={false}>
+          {/* Pi logo */}
+          <View style={styles.logoContainer}>
+            <Text style={styles.piSymbol}>{'\u03C0'}</Text>
+            <View style={styles.logoTextContainer}>
+              <Text style={styles.logoLabel}>Pi</Text>
+              <Text style={styles.logoVersion}>3.14</Text>
+            </View>
+          </View>
+
+          {/* Title */}
+          <Text style={styles.setupTitle}>Training Mode</Text>
+
+          {/* Start at Digit */}
+          <Text style={styles.settingLabel}>Start at Digit {setupStartDigit}</Text>
+          <View style={styles.controlRow}>
+            <TouchableOpacity
+              style={styles.controlBtn}
+              onPress={loadSavedBookmark}
+              onLongPress={saveBookmark}
+            >
+              <Text style={styles.controlBtnText}>{'\u2691'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.controlBtn} onPress={() => adjustStartDigit(1)}>
+              <Text style={styles.controlBtnText}>+</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.controlBtn} onPress={() => adjustStartDigit(-1)}>
+              <Text style={styles.controlBtnText}>{'\u2212'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.multiplierBtn} onPress={() => adjustStartDigit(100)}>
+              <Text style={styles.multiplierBtnText}>x100</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Start button */}
+          <TouchableOpacity style={styles.actionBtn} onPress={startTraining}>
+            <Text style={styles.actionBtnText}>Start</Text>
+          </TouchableOpacity>
+
+          {/* Return button */}
+          <TouchableOpacity
+            style={styles.actionBtn}
+            onPress={() => navigation?.navigate('Home')}
+          >
+            <Text style={styles.actionBtnText}>Return</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </View>
+    );
+  }
 
   // Number pad
   const renderNumberPad = () => {
@@ -187,12 +271,12 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
     );
   };
 
-  // Learn mode: show digits and allow scrolling
+  // Learn mode
   const renderLearnMode = () => {
     const { before, current, after } = getVisibleDigits();
     return (
       <View style={styles.learnContainer}>
-        <Text style={styles.learnLabel}>ספרה {currentPos + 1}</Text>
+        <Text style={styles.learnLabel}>Digit {currentPos + 1}</Text>
         <View style={styles.digitDisplay}>
           <Text style={styles.digitsBefore}>{formatDigits(before, groupSize)}</Text>
           <Text style={styles.digitsCurrent}>{formatDigits(current, groupSize)}</Text>
@@ -201,65 +285,60 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
         <Text style={styles.piPrefix}>...{currentPos === 0 ? '3.' : ''}</Text>
 
         <View style={styles.learnControls}>
-          <Button
-            title="הקודם"
+          <TouchableOpacity
+            style={styles.navBtn}
             onPress={() => setCurrentPos(prev => Math.max(0, prev - groupSize))}
-            variant="outline"
-            size="sm"
-          />
-          <Button
-            title="הבא"
+          >
+            <Text style={styles.navBtnText}>Previous</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.navBtn}
             onPress={() => setCurrentPos(prev => Math.min(PI_DIGITS.length - groupSize, prev + groupSize))}
-            variant="primary"
-            size="sm"
-            disabled={currentPos >= PI_DIGITS.length - groupSize}
-          />
+          >
+            <Text style={styles.navBtnText}>Next</Text>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.jumpControls}>
-          <Button
-            title="התחלה"
-            onPress={() => setCurrentPos(0)}
-            variant="ghost"
-            size="sm"
-          />
-          <Button
-            title="קפוץ +10"
+          <TouchableOpacity style={styles.jumpBtn} onPress={() => setCurrentPos(0)}>
+            <Text style={styles.jumpBtnText}>Start</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.jumpBtn}
             onPress={() => setCurrentPos(prev => Math.min(PI_DIGITS.length - 10, prev + 10))}
-            variant="ghost"
-            size="sm"
-          />
-          <Button
-            title="קפוץ +50"
+          >
+            <Text style={styles.jumpBtnText}>+10</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.jumpBtn}
             onPress={() => setCurrentPos(prev => Math.min(PI_DIGITS.length - 50, prev + 50))}
-            variant="ghost"
-            size="sm"
-          />
+          >
+            <Text style={styles.jumpBtnText}>+50</Text>
+          </TouchableOpacity>
         </View>
       </View>
     );
   };
 
-  // Type mode: user types the digits
+  // Type mode
   const renderTypeMode = () => {
-    const expectedRange = getDigitRange(currentPos, currentPos + showDigits);
     return (
       <View style={styles.typeContainer}>
         {/* Status bar */}
         <View style={styles.statusBar}>
           <View style={styles.statusItem}>
-            <Text style={styles.statusLabel}>ספרה</Text>
+            <Text style={styles.statusLabel}>Digit</Text>
             <Text style={styles.statusValue}>{currentPos + 1}</Text>
           </View>
           <View style={styles.statusItem}>
-            <Text style={styles.statusLabel}>רצף</Text>
-            <Text style={[styles.statusValue, { color: Theme.colors.accent }]}>{streak}</Text>
+            <Text style={styles.statusLabel}>Streak</Text>
+            <Text style={[styles.statusValue, { color: '#14B8A6' }]}>{streak}</Text>
           </View>
           <View style={styles.statusItem}>
-            <Text style={styles.statusLabel}>חיים</Text>
+            <Text style={styles.statusLabel}>Lives</Text>
             <Text style={styles.statusValue}>
-              {Array(lives).fill('❤️').join('')}
-              {Array(3 - lives).fill('🖤').join('')}
+              {Array(lives).fill('\u2764\uFE0F').join('')}
+              {Array(3 - lives).fill('\uD83D\uDDA4').join('')}
             </Text>
           </View>
         </View>
@@ -275,8 +354,8 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
           </Text>
           <Text style={[
             styles.typedText,
-            isCorrect === true && { color: Theme.colors.correct },
-            isCorrect === false && { color: Theme.colors.incorrect },
+            isCorrect === true && { color: '#10B981' },
+            isCorrect === false && { color: '#EF4444' },
           ]}>
             {typedDigits || '_'.repeat(groupSize)}
           </Text>
@@ -287,9 +366,9 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
 
         {/* Score */}
         <View style={styles.scoreRow}>
-          <Text style={styles.scoreText}>נכון: {totalCorrect}</Text>
-          <Text style={styles.scoreText}>שגוי: {totalIncorrect}</Text>
-          <Text style={styles.scoreText}>שיא רצף: {bestStreak}</Text>
+          <Text style={styles.scoreText}>Correct: {totalCorrect}</Text>
+          <Text style={styles.scoreText}>Wrong: {totalIncorrect}</Text>
+          <Text style={styles.scoreText}>Best: {bestStreak}</Text>
         </View>
 
         {renderNumberPad()}
@@ -297,6 +376,7 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
     );
   };
 
+  // Playing screen
   return (
     <View style={styles.container}>
       {/* Mode selector */}
@@ -306,7 +386,7 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
           onPress={() => setMode('learn')}
         >
           <Text style={[styles.modeTabText, mode === 'learn' && styles.modeTabTextActive]}>
-            למידה
+            Learn
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -314,14 +394,14 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
           onPress={() => setMode('type')}
         >
           <Text style={[styles.modeTabText, mode === 'type' && styles.modeTabTextActive]}>
-            הקלדה
+            Type
           </Text>
         </TouchableOpacity>
       </View>
 
       {/* Group size selector */}
       <View style={styles.groupSelector}>
-        <Text style={styles.groupLabel}>קבוצה:</Text>
+        <Text style={styles.groupLabel}>Group:</Text>
         {[1, 2, 5, 10, 15, 20].map(size => (
           <TouchableOpacity
             key={size}
@@ -335,6 +415,14 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
         ))}
       </View>
 
+      {/* Back to setup */}
+      <TouchableOpacity
+        style={styles.backBtn}
+        onPress={() => setTrainingState('setup')}
+      >
+        <Text style={styles.backBtnText}>Back</Text>
+      </TouchableOpacity>
+
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {mode === 'learn' ? renderLearnMode() : renderTypeMode()}
       </ScrollView>
@@ -345,37 +433,135 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Theme.colors.background,
+    backgroundColor: '#000000',
   },
   scrollContent: {
     flexGrow: 1,
-    padding: Theme.spacing.md,
+    padding: 16,
+  },
+  // Setup screen
+  setupScroll: {
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingBottom: 40,
+  },
+  logoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 20,
+    marginBottom: 60,
+  },
+  piSymbol: {
+    fontSize: 80,
+    color: '#CCCCCC',
+    fontStyle: 'italic',
+    fontWeight: '300',
+  },
+  logoTextContainer: {
+    marginLeft: 4,
+  },
+  logoLabel: {
+    fontSize: 20,
+    color: '#CCCCCC',
+    fontWeight: '400',
+  },
+  logoVersion: {
+    fontSize: 20,
+    color: '#CCCCCC',
+    fontWeight: '400',
+  },
+  setupTitle: {
+    fontSize: 28,
+    color: '#CCCCCC',
+    fontWeight: '400',
+    marginBottom: 24,
+    fontFamily: 'monospace',
+  },
+  settingLabel: {
+    fontSize: 20,
+    color: '#CCCCCC',
+    fontWeight: '400',
+    marginBottom: 8,
+    fontFamily: 'monospace',
+  },
+  controlRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 40,
+  },
+  controlBtn: {
+    width: 56,
+    height: 56,
+    borderWidth: 1,
+    borderColor: '#666666',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
+  },
+  controlBtnText: {
+    fontSize: 28,
+    color: '#CCCCCC',
+    fontWeight: '300',
+  },
+  multiplierBtn: {
+    paddingHorizontal: 16,
+    height: 40,
+    borderWidth: 1,
+    borderColor: '#666666',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
+    marginLeft: 8,
+  },
+  multiplierBtnText: {
+    fontSize: 16,
+    color: '#CCCCCC',
+    fontFamily: 'monospace',
+  },
+  actionBtn: {
+    width: '65%',
+    paddingVertical: 14,
+    borderWidth: 1,
+    borderColor: '#666666',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
+    marginBottom: 16,
+  },
+  actionBtnText: {
+    fontSize: 22,
+    color: '#CCCCCC',
+    fontFamily: 'monospace',
+    fontWeight: '400',
   },
   // Mode selector
   modeSelector: {
     flexDirection: 'row',
-    backgroundColor: Theme.colors.surface,
-    margin: Theme.spacing.md,
-    borderRadius: Theme.borderRadius.lg,
+    backgroundColor: '#111111',
+    margin: 16,
+    borderWidth: 1,
+    borderColor: '#333333',
     padding: 4,
   },
   modeTab: {
     flex: 1,
     paddingVertical: 12,
     alignItems: 'center',
-    borderRadius: Theme.borderRadius.md,
   },
   modeTabActive: {
-    backgroundColor: Theme.colors.primary,
+    backgroundColor: '#333333',
   },
   modeTabText: {
-    fontSize: Theme.fontSize.base,
-    color: Theme.colors.textSecondary,
-    fontWeight: Theme.fontWeight.medium,
+    fontSize: 16,
+    color: '#666666',
+    fontWeight: '500',
+    fontFamily: 'monospace',
   },
   modeTabTextActive: {
-    color: Theme.colors.white,
-    fontWeight: Theme.fontWeight.bold,
+    color: '#CCCCCC',
+    fontWeight: '700',
   },
   // Group selector
   groupSelector: {
@@ -383,12 +569,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    paddingHorizontal: Theme.spacing.md,
-    marginBottom: Theme.spacing.sm,
+    paddingHorizontal: 16,
+    marginBottom: 8,
   },
   groupLabel: {
-    color: Theme.colors.textSecondary,
-    fontSize: Theme.fontSize.sm,
+    color: '#666666',
+    fontSize: 14,
+    fontFamily: 'monospace',
   },
   groupButton: {
     width: 36,
@@ -396,72 +583,118 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Theme.colors.surface,
+    borderWidth: 1,
+    borderColor: '#444444',
+    backgroundColor: 'transparent',
   },
   groupButtonActive: {
-    backgroundColor: Theme.colors.primary,
+    backgroundColor: '#333333',
+    borderColor: '#CCCCCC',
   },
   groupButtonText: {
-    color: Theme.colors.textSecondary,
-    fontSize: Theme.fontSize.sm,
-    fontWeight: Theme.fontWeight.medium,
+    color: '#666666',
+    fontSize: 14,
+    fontWeight: '500',
+    fontFamily: 'monospace',
   },
   groupButtonTextActive: {
-    color: Theme.colors.white,
-    fontWeight: Theme.fontWeight.bold,
+    color: '#CCCCCC',
+    fontWeight: '700',
+  },
+  // Back button
+  backBtn: {
+    alignSelf: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: '#444444',
+    marginBottom: 8,
+  },
+  backBtnText: {
+    color: '#999999',
+    fontSize: 14,
+    fontFamily: 'monospace',
   },
   // Learn mode
   learnContainer: {
     alignItems: 'center',
-    paddingTop: Theme.spacing.xl,
+    paddingTop: 24,
   },
   learnLabel: {
-    color: Theme.colors.textSecondary,
-    fontSize: Theme.fontSize.base,
-    marginBottom: Theme.spacing.md,
+    color: '#999999',
+    fontSize: 16,
+    marginBottom: 16,
+    fontFamily: 'monospace',
   },
   digitDisplay: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: Theme.spacing.lg,
-    backgroundColor: Theme.colors.surface,
-    borderRadius: Theme.borderRadius.lg,
+    padding: 20,
+    backgroundColor: '#111111',
+    borderWidth: 1,
+    borderColor: '#333333',
     minHeight: 100,
     width: '100%',
   },
   piPrefix: {
-    color: Theme.colors.textMuted,
-    fontSize: Theme.fontSize.lg,
-    marginTop: Theme.spacing.sm,
+    color: '#666666',
+    fontSize: 18,
+    marginTop: 8,
+    fontFamily: 'monospace',
   },
   digitsBefore: {
-    fontSize: Theme.fontSize.xxl,
-    color: Theme.colors.textMuted,
+    fontSize: 24,
+    color: '#666666',
     letterSpacing: 2,
+    fontFamily: 'monospace',
   },
   digitsCurrent: {
-    fontSize: Theme.fontSize.huge,
-    color: Theme.colors.primary,
-    fontWeight: Theme.fontWeight.bold,
+    fontSize: 40,
+    color: '#EC4899',
+    fontWeight: '700',
     letterSpacing: 2,
     marginHorizontal: 4,
+    fontFamily: 'monospace',
   },
   digitsAfter: {
-    fontSize: Theme.fontSize.xxl,
-    color: Theme.colors.textSecondary,
+    fontSize: 24,
+    color: '#999999',
     letterSpacing: 2,
+    fontFamily: 'monospace',
   },
   learnControls: {
     flexDirection: 'row',
     gap: 16,
-    marginTop: Theme.spacing.xl,
+    marginTop: 24,
+  },
+  navBtn: {
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: '#666666',
+  },
+  navBtnText: {
+    color: '#CCCCCC',
+    fontSize: 16,
+    fontFamily: 'monospace',
   },
   jumpControls: {
     flexDirection: 'row',
     gap: 8,
-    marginTop: Theme.spacing.md,
+    marginTop: 16,
+  },
+  jumpBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: '#444444',
+  },
+  jumpBtnText: {
+    color: '#999999',
+    fontSize: 14,
+    fontFamily: 'monospace',
   },
   // Type mode
   typeContainer: {
@@ -472,66 +705,71 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     width: '100%',
-    paddingVertical: Theme.spacing.sm,
-    marginBottom: Theme.spacing.md,
+    paddingVertical: 8,
+    marginBottom: 16,
   },
   statusItem: {
     alignItems: 'center',
   },
   statusLabel: {
-    color: Theme.colors.textMuted,
-    fontSize: Theme.fontSize.xs,
+    color: '#666666',
+    fontSize: 12,
+    fontFamily: 'monospace',
   },
   statusValue: {
-    color: Theme.colors.text,
-    fontSize: Theme.fontSize.lg,
-    fontWeight: Theme.fontWeight.bold,
+    color: '#CCCCCC',
+    fontSize: 18,
+    fontWeight: '700',
+    fontFamily: 'monospace',
   },
   typeDisplay: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Theme.colors.surface,
-    borderRadius: Theme.borderRadius.lg,
-    padding: Theme.spacing.lg,
+    backgroundColor: '#111111',
+    padding: 20,
     width: '100%',
     minHeight: 80,
     borderWidth: 2,
-    borderColor: Theme.colors.border,
-    marginBottom: Theme.spacing.md,
+    borderColor: '#333333',
+    marginBottom: 16,
   },
   typeDisplayCorrect: {
-    borderColor: Theme.colors.correct,
+    borderColor: '#10B981',
   },
   typeDisplayIncorrect: {
-    borderColor: Theme.colors.incorrect,
+    borderColor: '#EF4444',
   },
   typeHint: {
-    fontSize: Theme.fontSize.xl,
-    color: Theme.colors.textMuted,
+    fontSize: 20,
+    color: '#666666',
     letterSpacing: 2,
+    fontFamily: 'monospace',
   },
   typedText: {
-    fontSize: Theme.fontSize.xxxl,
-    color: Theme.colors.primary,
-    fontWeight: Theme.fontWeight.bold,
+    fontSize: 32,
+    color: '#EC4899',
+    fontWeight: '700',
     letterSpacing: 4,
     marginHorizontal: 4,
+    fontFamily: 'monospace',
   },
   typeRemaining: {
-    fontSize: Theme.fontSize.xxxl,
-    color: Theme.colors.textMuted,
+    fontSize: 32,
+    color: '#444444',
     letterSpacing: 4,
+    fontFamily: 'monospace',
   },
   scoreRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     width: '100%',
-    marginBottom: Theme.spacing.md,
+    marginBottom: 16,
   },
   scoreText: {
-    color: Theme.colors.textSecondary,
-    fontSize: Theme.fontSize.sm,
+    color: '#999999',
+    fontSize: 14,
+    fontFamily: 'monospace',
   },
   // Number pad
   numPad: {
@@ -547,26 +785,28 @@ const styles = StyleSheet.create({
   numPadButton: {
     width: 72,
     height: 56,
-    borderRadius: Theme.borderRadius.md,
-    backgroundColor: Theme.colors.surface,
+    borderWidth: 1,
+    borderColor: '#444444',
+    backgroundColor: '#111111',
     alignItems: 'center',
     justifyContent: 'center',
-    ...Theme.shadow.sm,
   },
   numPadEmpty: {
     width: 72,
     height: 56,
   },
   numPadDelete: {
-    backgroundColor: Theme.colors.surfaceLight,
+    backgroundColor: '#1A1A1A',
   },
   numPadText: {
-    fontSize: Theme.fontSize.xxl,
-    color: Theme.colors.text,
-    fontWeight: Theme.fontWeight.semibold,
+    fontSize: 24,
+    color: '#CCCCCC',
+    fontWeight: '500',
+    fontFamily: 'monospace',
   },
   numPadDeleteText: {
-    fontSize: Theme.fontSize.xl,
-    color: Theme.colors.textSecondary,
+    fontSize: 20,
+    color: '#999999',
+    fontFamily: 'monospace',
   },
 });

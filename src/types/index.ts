@@ -96,6 +96,9 @@ export interface UserSettings {
   weeklyFrequency: number;                 // כמה פעמים בשבוע
   githubSyncEnabled: boolean;              // חיבור ל-GitHub
   googleCalendarEnabled: boolean;          // חיבור ליומן גוגל
+  challengeStartDigitBookmark?: number;    // סימניה - ספרת התחלה באתגר
+  challengeLengthBookmark?: number;        // סימניה - אורך אתגר
+  trainingStartDigitBookmark?: number;     // סימניה - ספרת התחלה באימון
 }
 
 // נתוני משתמש מלאים
