@@ -72,7 +72,7 @@ export const SettingsScreen: React.FC<{ navigation?: any }> = () => {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>פורמט תצוגת ספרות</Text>
         <View style={styles.formatRow}>
-          {([1, 2, 4, 8, 10] as const).map(format => (
+          {([1, 2, 5, 10, 15, 20] as const).map(format => (
             <TouchableOpacity
               key={format}
               style={[styles.formatBtn, settings.displayFormat === format && styles.formatBtnActive]}
@@ -82,7 +82,7 @@ export const SettingsScreen: React.FC<{ navigation?: any }> = () => {
                 styles.formatText,
                 settings.displayFormat === format && styles.formatTextActive,
               ]}>
-                {format === 1 ? 'בודד' : format === 2 ? 'זוגות' : format === 4 ? 'רביעיות' : format === 8 ? 'שמיניות' : 'עשיריות'}
+                {format === 1 ? 'בודד' : format === 2 ? 'זוגות' : format === 5 ? 'חמישיות' : format === 10 ? 'עשיריות' : format === 15 ? '15' : '20'}
               </Text>
             </TouchableOpacity>
           ))}

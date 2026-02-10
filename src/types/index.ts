@@ -87,7 +87,7 @@ export interface CalendarTask {
 
 // הגדרות משתמש
 export interface UserSettings {
-  displayFormat: 1 | 2 | 4 | 8 | 9 | 10;  // פורמט תצוגת ספרות
+  displayFormat: 1 | 2 | 5 | 10 | 15 | 20;  // פורמט תצוגת ספרות
   rtlEnabled: boolean;                     // תמיכה ב-RTL
   soundEnabled: boolean;                   // צלילים
   hapticEnabled: boolean;                  // רטט

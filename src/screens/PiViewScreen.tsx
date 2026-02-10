@@ -254,9 +254,10 @@ export const PiViewScreen: React.FC<{ navigation?: any }> = () => {
   const fontSizes: Record<number, number> = {
     1: zoomLevel === 1 ? 18 : zoomLevel === 2 ? 24 : 32,
     2: zoomLevel === 1 ? 16 : zoomLevel === 2 ? 22 : 28,
-    4: zoomLevel === 1 ? 14 : zoomLevel === 2 ? 20 : 26,
-    8: zoomLevel === 1 ? 13 : zoomLevel === 2 ? 18 : 24,
-    10: zoomLevel === 1 ? 12 : zoomLevel === 2 ? 16 : 22,
+    5: zoomLevel === 1 ? 14 : zoomLevel === 2 ? 20 : 26,
+    10: zoomLevel === 1 ? 13 : zoomLevel === 2 ? 18 : 24,
+    15: zoomLevel === 1 ? 12 : zoomLevel === 2 ? 16 : 22,
+    20: zoomLevel === 1 ? 11 : zoomLevel === 2 ? 14 : 20,
   };
 
   const renderDigits = () => {
@@ -419,7 +420,7 @@ export const PiViewScreen: React.FC<{ navigation?: any }> = () => {
 
       {/* Group size selector */}
       <View style={styles.groupSelector}>
-        {[1, 2, 4, 8, 10].map(size => (
+        {[1, 2, 5, 10, 15, 20].map(size => (
           <TouchableOpacity
             key={size}
             style={[styles.groupBtn, groupSize === size && styles.groupBtnActive]}
@@ -480,25 +481,6 @@ export const PiViewScreen: React.FC<{ navigation?: any }> = () => {
         >
           <Text style={styles.navBtnText}>{'>>'}</Text>
         </TouchableOpacity>
-      </View>
-
-      {/* Quick jump - digit positions */}
-      <View style={styles.quickJump}>
-        {[1, 1000, 2500, 5000, 7500, 10000].map(digitNum => {
-          const targetDigit = Math.min(digitNum - 1, TOTAL_DIGITS - 1);
-          const targetPage = getPageForDigit(targetDigit, digitsPerPage);
-          return (
-            <TouchableOpacity
-              key={digitNum}
-              style={[styles.jumpBtn, currentPage === targetPage && styles.jumpBtnActive]}
-              onPress={() => setCurrentPage(Math.min(targetPage, totalPages - 1))}
-            >
-              <Text style={[styles.jumpBtnText, currentPage === targetPage && styles.jumpBtnTextActive]}>
-                {digitNum}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
       </View>
 
       {/* Advanced Search Modal */}
@@ -847,28 +829,6 @@ const styles = StyleSheet.create({
     color: Theme.colors.primary,
     fontSize: Theme.fontSize.base,
     fontWeight: Theme.fontWeight.semibold,
-  },
-  quickJump: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 4,
-    paddingBottom: Theme.spacing.sm,
-    paddingHorizontal: Theme.spacing.sm,
-  },
-  jumpBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: Theme.borderRadius.sm,
-    backgroundColor: Theme.colors.surface,
-  },
-  jumpBtnActive: { backgroundColor: Theme.colors.primary },
-  jumpBtnText: {
-    color: Theme.colors.textMuted,
-    fontSize: Theme.fontSize.xs,
-  },
-  jumpBtnTextActive: {
-    color: Theme.colors.white,
-    fontWeight: Theme.fontWeight.bold,
   },
   // Modal
   modalOverlay: {

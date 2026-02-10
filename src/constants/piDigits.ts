@@ -142,10 +142,10 @@ export const TOTAL_DIGITS = PI_DIGITS.length;
 export const PiFormats = {
   SINGLE: 1,      // 1 4 1 5 9 2 6
   PAIRS: 2,       // 14 15 92 65
-  QUADS: 4,       // 1415 9265
-  OCTET: 8,       // 14159265
-  NINE: 9,        // 141592653
+  FIVES: 5,       // 14159 26535
   TEN: 10,        // 1415926535
+  FIFTEEN: 15,    // 141592653589793
+  TWENTY: 20,     // 14159265358979323846
 } as const;
 
 export type PiFormat = typeof PiFormats[keyof typeof PiFormats];

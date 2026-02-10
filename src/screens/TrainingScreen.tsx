@@ -322,7 +322,7 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
       {/* Group size selector */}
       <View style={styles.groupSelector}>
         <Text style={styles.groupLabel}>קבוצה:</Text>
-        {[1, 2, 4, 8, 10].map(size => (
+        {[1, 2, 5, 10, 15, 20].map(size => (
           <TouchableOpacity
             key={size}
             style={[styles.groupButton, groupSize === size && styles.groupButtonActive]}
