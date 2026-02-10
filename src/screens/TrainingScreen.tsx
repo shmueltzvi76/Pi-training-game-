@@ -23,7 +23,7 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
   // Setup state
   const [trainingState, setTrainingState] = useState<TrainingState>('setup');
   const [setupStartDigit, setSetupStartDigit] = useState(1);
-  const [setupEndDigit, setSetupEndDigit] = useState(1);
+  const [setupEndDigit, setSetupEndDigit] = useState(0); // 0 = infinity (no limit)
   const [savedStartDigit, setSavedStartDigit] = useState<number | null>(null);
   const [savedEndDigit, setSavedEndDigit] = useState<number | null>(null);
   const [startDigitStepIndex, setStartDigitStepIndex] = useState(0);
@@ -110,16 +110,21 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
 
   const adjustEndDigit = (direction: 1 | -1) => {
     const step = getEndDigitStep();
-    setSetupEndDigit(prev => Math.max(1, Math.min(PI_DIGITS.length, prev + direction * step)));
+    setSetupEndDigit(prev => {
+      const next = prev + direction * step;
+      if (next < 1) return 0; // go to infinity
+      if (prev === 0 && direction === 1) return step; // from infinity, start at step value
+      return Math.min(PI_DIGITS.length, next);
+    });
   };
 
-  // End limit: only active when endDigit > startDigit
-  const hasEndLimit = setupEndDigit > setupStartDigit;
+  // End limit: only active when endDigit > 0
+  const hasEndLimit = setupEndDigit > 0;
   const endPos = setupEndDigit - 1; // 0-based end position
 
   const startTraining = () => {
-    if (setupEndDigit > 1 && setupEndDigit <= setupStartDigit) {
-      Alert.alert('Error', 'End digit must be greater than start digit, or set to 1 for no limit');
+    if (hasEndLimit && setupEndDigit <= setupStartDigit) {
+      Alert.alert('Error', 'End digit must be greater than start digit');
       return;
     }
     const pos = setupStartDigit - 1; // convert to 0-based
@@ -257,7 +262,7 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
           </View>
 
           {/* End at Digit */}
-          <Text style={styles.settingLabel}>End at Digit {setupEndDigit}</Text>
+          <Text style={styles.settingLabel}>End at Digit {setupEndDigit === 0 ? '\u221E' : setupEndDigit}</Text>
           <View style={styles.controlRow}>
             <TouchableOpacity
               style={styles.controlBtn}
