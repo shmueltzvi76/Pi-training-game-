@@ -17,7 +17,7 @@ type ChallengeState = 'setup' | 'playing' | 'finished';
 const THINKING_TIMES = [0, 60, 30, 20, 15, 10, 5, 3, 2, 1];
 
 // Step multiplier presets
-const STEP_PRESETS = [1, 25, 50, 100, 500];
+const STEP_PRESETS = [1, 10, 25, 100, 500, 1000];
 
 export const ChallengeScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
   const [state, setState] = useState<ChallengeState>('setup');

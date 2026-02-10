@@ -17,7 +17,7 @@ type TrainingState = 'setup' | 'playing';
 type TrainingMode = 'learn' | 'type';
 
 // Step multiplier presets
-const STEP_PRESETS = [1, 25, 50, 100, 500];
+const STEP_PRESETS = [1, 10, 25, 100, 500, 1000];
 
 export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
   // Setup state
