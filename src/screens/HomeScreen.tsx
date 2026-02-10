@@ -4,17 +4,12 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  I18nManager,
   TouchableOpacity,
 } from 'react-native';
 import { Theme } from '@constants/theme';
 import { Button } from '@components/Button';
 import StorageManager from '@storage/StorageManager';
 import { TOTAL_DIGITS } from '@constants/piDigits';
-
-// הפעלת RTL לעברית
-I18nManager.allowRTL(true);
-I18nManager.forceRTL(true);
 
 interface HomeScreenProps {
   navigation?: any;
