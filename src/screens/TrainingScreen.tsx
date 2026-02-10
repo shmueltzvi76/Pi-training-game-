@@ -62,7 +62,7 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
       if (settings?.trainingStartDigitBookmark) {
         setSavedStartDigit(settings.trainingStartDigitBookmark);
       }
-      if (settings?.trainingEndDigitBookmark) {
+      if (settings?.trainingEndDigitBookmark !== undefined && settings?.trainingEndDigitBookmark !== null) {
         setSavedEndDigit(settings.trainingEndDigitBookmark);
       }
     } catch (e) {
@@ -164,6 +164,10 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
   };
 
   const handleDigitPress = (digit: string) => {
+    // Block input if reached end or beyond PI_DIGITS
+    if (hasEndLimit && currentPos > endPos) return;
+    if (currentPos + typedDigits.length >= PI_DIGITS.length) return;
+
     const expectedDigit = PI_DIGITS[currentPos + typedDigits.length];
 
     if (digit === expectedDigit) {
@@ -361,7 +365,7 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
         <View style={styles.learnControls}>
           <TouchableOpacity
             style={styles.navBtn}
-            onPress={() => setCurrentPos(prev => Math.max(0, prev - groupSize))}
+            onPress={() => setCurrentPos(prev => Math.max(setupStartDigit - 1, prev - groupSize))}
           >
             <Text style={styles.navBtnText}>Previous</Text>
           </TouchableOpacity>

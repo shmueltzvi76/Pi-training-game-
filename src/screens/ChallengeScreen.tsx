@@ -146,12 +146,15 @@ export const ChallengeScreen: React.FC<{ navigation?: any }> = ({ navigation }) 
 
   const startChallenge = () => {
     const actualStart = startDigit - 1; // convert to 0-based index
-    const safeTarget = Math.min(challengeLength, PI_DIGITS.length - actualStart);
-    if (safeTarget <= 0) {
-      Alert.alert('Error', 'Not enough digits from the selected start position');
+    const available = PI_DIGITS.length - actualStart;
+    if (available <= 0) {
+      Alert.alert('Error', 'Start position is beyond available digits');
       return;
     }
-    setChallengeLength(safeTarget);
+    if (challengeLength > available) {
+      Alert.alert('Error', `Only ${available} digits available from position ${startDigit}. Reduce challenge length.`);
+      return;
+    }
     setState('playing');
     setCurrentPos(actualStart);
     setLives(3);
@@ -214,6 +217,7 @@ export const ChallengeScreen: React.FC<{ navigation?: any }> = ({ navigation }) 
 
   const handleDigitPress = (digit: string) => {
     if (state !== 'playing') return;
+    if (currentPos >= PI_DIGITS.length) return;
 
     const expected = PI_DIGITS[currentPos];
     if (digit === expected) {
