@@ -2,7 +2,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [main, master]
+    branches: [main, master, claude/pi-memory-game-gkg5j]
   workflow_dispatch:
 
 permissions:
