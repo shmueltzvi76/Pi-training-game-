@@ -15,17 +15,10 @@ if (Platform.OS === 'web') {
     * { box-sizing: border-box; }
     html, body, #root {
       width: 100% !important;
-      height: 100dvh !important;
-      height: 100vh !important;
+      height: 100% !important;
       margin: 0 !important;
       padding: 0 !important;
       background-color: #000000 !important;
-      overflow: hidden !important;
-    }
-    @supports (height: 100dvh) {
-      html, body, #root {
-        height: 100dvh !important;
-      }
     }
     #root > div {
       width: 100% !important;
