@@ -581,17 +581,10 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
         ))}
       </View>
 
-      {/* Back to setup */}
-      <TouchableOpacity
-        style={styles.backBtn}
-        onPress={() => setTrainingState('setup')}
-      >
-        <Text style={styles.backBtnText}>Back</Text>
-      </TouchableOpacity>
-
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      {/* Content area fills remaining space */}
+      <View style={styles.contentArea}>
         {mode === 'learn' ? renderLearnMode() : renderTypeMode()}
-      </ScrollView>
+      </View>
     </View>
   );
 };
@@ -601,9 +594,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000000',
   },
-  scrollContent: {
-    flexGrow: 1,
-    padding: 16,
+  contentArea: {
+    flex: 1,
+    padding: 8,
   },
   // Setup screen
   setupScroll: {
@@ -706,14 +699,15 @@ const styles = StyleSheet.create({
   modeSelector: {
     flexDirection: 'row',
     backgroundColor: '#111111',
-    margin: 16,
+    marginHorizontal: 16,
+    marginVertical: 4,
     borderWidth: 1,
     borderColor: '#333333',
-    padding: 4,
+    padding: 2,
   },
   modeTab: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: 8,
     alignItems: 'center',
   },
   modeTabActive: {
@@ -734,9 +728,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: 6,
     paddingHorizontal: 16,
-    marginBottom: 8,
+    marginBottom: 4,
   },
   groupLabel: {
     color: '#666666',
@@ -862,7 +856,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'monospace',
   },
-  // Type mode
+  // Type mode - fills all available space
   typeContainer: {
     flex: 1,
     alignItems: 'center',
@@ -871,8 +865,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     width: '100%',
-    paddingVertical: 8,
-    marginBottom: 16,
+    paddingVertical: 4,
+    marginBottom: 4,
   },
   statusItem: {
     alignItems: 'center',
@@ -893,12 +887,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#111111',
-    padding: 20,
+    padding: 12,
     width: '100%',
-    minHeight: 80,
+    minHeight: 56,
     borderWidth: 2,
     borderColor: '#333333',
-    marginBottom: 16,
+    marginBottom: 8,
   },
   typeDisplayCorrect: {
     borderColor: '#10B981',
@@ -930,36 +924,41 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     width: '100%',
-    marginBottom: 16,
+    marginBottom: 4,
   },
   scoreText: {
     color: '#999999',
     fontSize: 14,
     fontFamily: 'monospace',
   },
-  // Number pad
+  // Number pad - flex-based, fills remaining space
   numPad: {
-    width: '100%',
-    gap: 8,
+    flex: 1,
+    justifyContent: 'flex-end',
+    gap: 6,
     paddingHorizontal: '5%',
+    paddingBottom: 8,
   },
   numPadRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 8,
+    gap: 6,
+    flex: 1,
+    maxHeight: 64,
   },
   numPadButton: {
-    width: '28%',
-    aspectRatio: 1.6,
+    flex: 1,
+    maxWidth: '30%',
     borderWidth: 1,
     borderColor: '#444444',
     backgroundColor: '#111111',
     alignItems: 'center',
     justifyContent: 'center',
+    borderRadius: 4,
   },
   numPadEmpty: {
-    width: '28%',
-    aspectRatio: 1.6,
+    flex: 1,
+    maxWidth: '30%',
   },
   numPadDelete: {
     backgroundColor: '#1A1A1A',
@@ -978,8 +977,8 @@ const styles = StyleSheet.create({
   // Progress counter
   progressCounter: {
     alignItems: 'center',
-    paddingVertical: 8,
-    marginBottom: 4,
+    paddingVertical: 4,
+    marginBottom: 2,
   },
   progressCounterText: {
     color: '#14B8A6',
@@ -1006,10 +1005,10 @@ const styles = StyleSheet.create({
   // Digit indicator
   digitIndicator: {
     color: '#CCCCCC',
-    fontSize: 18,
+    fontSize: 16,
     fontFamily: 'monospace',
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   digitIndicatorWrong: {
     color: '#EF4444',

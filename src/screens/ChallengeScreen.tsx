@@ -506,7 +506,7 @@ export const ChallengeScreen: React.FC<{ navigation?: any }> = ({ navigation }) 
       {/* Digit indicator */}
       <Text style={styles.digitIndicator}>Digit {currentPos - actualStart + 1}</Text>
 
-      {/* Number pad */}
+      {/* Number pad - flex fills remaining space */}
       <View style={styles.numPad}>
         {numpadRows.map((row, ri) => (
           <View key={ri} style={styles.numPadRow}>
@@ -787,33 +787,37 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginLeft: 8,
   },
-  // Number pad
+  // Number pad - flex-based, fills remaining screen space
   numPad: {
     flex: 1,
-    justifyContent: 'center',
-    gap: 8,
+    justifyContent: 'flex-end',
+    gap: 6,
     paddingHorizontal: '5%',
+    paddingBottom: 8,
   },
   numPadRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 8,
+    gap: 6,
+    flex: 1,
+    maxHeight: 64,
   },
   numPadButton: {
-    width: '28%',
-    aspectRatio: 1.6,
+    flex: 1,
+    maxWidth: '30%',
     borderWidth: 1,
     borderColor: '#444444',
     backgroundColor: '#111111',
     alignItems: 'center',
     justifyContent: 'center',
+    borderRadius: 4,
   },
   numPadEmpty: {
-    width: '28%',
-    aspectRatio: 1.6,
+    flex: 1,
+    maxWidth: '30%',
   },
   numPadText: {
-    fontSize: 24,
+    fontSize: 22,
     color: '#CCCCCC',
     fontWeight: '500',
     fontFamily: 'monospace',
