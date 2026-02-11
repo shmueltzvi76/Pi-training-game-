@@ -244,6 +244,7 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
     setLives(3);
     setTotalCorrect(0);
     setTotalIncorrect(0);
+    setTypedHistory([]);
   };
 
   // Setup screen - matching screenshot design

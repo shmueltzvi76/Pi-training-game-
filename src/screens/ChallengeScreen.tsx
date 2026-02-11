@@ -206,7 +206,11 @@ export const ChallengeScreen: React.FC<{ navigation?: any }> = ({ navigation }) 
             setLives(l => {
               const newLives = l - 1;
               if (newLives <= 0) {
-                endChallenge(false, correctCount, 0);
+                // Use functional update to get current correctCount
+                setCorrectCount(currentCorrect => {
+                  endChallenge(false, currentCorrect, 0);
+                  return currentCorrect;
+                });
               }
               return Math.max(0, newLives);
             });
