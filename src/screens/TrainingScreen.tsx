@@ -523,7 +523,7 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
 
   // Playing screen
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.playScrollContent}>
+    <View style={styles.container}>
       {/* Header with info */}
       <View style={styles.playingHeader}>
         <Text style={styles.playingHeaderText}>Start at {setupStartDigit} digit</Text>
@@ -581,9 +581,18 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
         ))}
       </View>
 
-      {/* Content */}
-      {mode === 'learn' ? renderLearnMode() : renderTypeMode()}
-    </ScrollView>
+      {/* Back to setup */}
+      <TouchableOpacity
+        style={styles.backBtn}
+        onPress={() => setTrainingState('setup')}
+      >
+        <Text style={styles.backBtnText}>Back</Text>
+      </TouchableOpacity>
+
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        {mode === 'learn' ? renderLearnMode() : renderTypeMode()}
+      </ScrollView>
+    </View>
   );
 };
 
@@ -592,15 +601,15 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000000',
   },
-  playScrollContent: {
-    paddingBottom: 120,
-    paddingHorizontal: 8,
+  scrollContent: {
+    flexGrow: 1,
+    padding: 16,
   },
   // Setup screen
   setupScroll: {
     alignItems: 'center',
     paddingHorizontal: 24,
-    paddingBottom: 120,
+    paddingBottom: 40,
   },
   logoContainer: {
     flexDirection: 'row',
@@ -697,15 +706,14 @@ const styles = StyleSheet.create({
   modeSelector: {
     flexDirection: 'row',
     backgroundColor: '#111111',
-    marginHorizontal: 16,
-    marginVertical: 4,
+    margin: 16,
     borderWidth: 1,
     borderColor: '#333333',
-    padding: 2,
+    padding: 4,
   },
   modeTab: {
     flex: 1,
-    paddingVertical: 8,
+    paddingVertical: 12,
     alignItems: 'center',
   },
   modeTabActive: {
@@ -726,9 +734,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: 8,
     paddingHorizontal: 16,
-    marginBottom: 4,
+    marginBottom: 8,
   },
   groupLabel: {
     color: '#666666',
@@ -776,7 +784,7 @@ const styles = StyleSheet.create({
   // Learn mode
   learnContainer: {
     alignItems: 'center',
-    paddingTop: 8,
+    paddingTop: 24,
   },
   learnLabel: {
     color: '#999999',
@@ -825,7 +833,7 @@ const styles = StyleSheet.create({
   learnControls: {
     flexDirection: 'row',
     gap: 16,
-    marginTop: 12,
+    marginTop: 24,
   },
   navBtn: {
     paddingHorizontal: 24,
@@ -854,7 +862,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'monospace',
   },
-  // Type mode - fills all available space
+  // Type mode
   typeContainer: {
     flex: 1,
     alignItems: 'center',
@@ -863,8 +871,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     width: '100%',
-    paddingVertical: 4,
-    marginBottom: 4,
+    paddingVertical: 8,
+    marginBottom: 16,
   },
   statusItem: {
     alignItems: 'center',
@@ -885,12 +893,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#111111',
-    padding: 12,
+    padding: 20,
     width: '100%',
-    minHeight: 56,
+    minHeight: 80,
     borderWidth: 2,
     borderColor: '#333333',
-    marginBottom: 8,
+    marginBottom: 16,
   },
   typeDisplayCorrect: {
     borderColor: '#10B981',
@@ -922,37 +930,36 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     width: '100%',
-    marginBottom: 4,
+    marginBottom: 16,
   },
   scoreText: {
     color: '#999999',
     fontSize: 14,
     fontFamily: 'monospace',
   },
-  // Number pad - fixed height, always visible
+  // Number pad
   numPad: {
-    gap: 6,
+    width: '100%',
+    gap: 8,
     paddingHorizontal: '5%',
-    marginTop: 8,
   },
   numPadRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 6,
+    gap: 8,
   },
   numPadButton: {
-    flex: 1,
-    height: 52,
+    width: '28%',
+    aspectRatio: 1.3,
     borderWidth: 1,
     borderColor: '#444444',
     backgroundColor: '#111111',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 4,
   },
   numPadEmpty: {
-    flex: 1,
-    height: 52,
+    width: '28%',
+    aspectRatio: 1.3,
   },
   numPadDelete: {
     backgroundColor: '#1A1A1A',
@@ -971,8 +978,8 @@ const styles = StyleSheet.create({
   // Progress counter
   progressCounter: {
     alignItems: 'center',
-    paddingVertical: 4,
-    marginBottom: 2,
+    paddingVertical: 8,
+    marginBottom: 4,
   },
   progressCounterText: {
     color: '#14B8A6',
@@ -999,10 +1006,10 @@ const styles = StyleSheet.create({
   // Digit indicator
   digitIndicator: {
     color: '#CCCCCC',
-    fontSize: 16,
+    fontSize: 18,
     fontFamily: 'monospace',
     textAlign: 'center',
-    marginBottom: 4,
+    marginBottom: 8,
   },
   digitIndicatorWrong: {
     color: '#EF4444',

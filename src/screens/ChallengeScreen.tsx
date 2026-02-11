@@ -450,7 +450,7 @@ export const ChallengeScreen: React.FC<{ navigation?: any }> = ({ navigation }) 
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.playScrollContent}>
+    <View style={styles.container}>
       {/* Header */}
       <View style={styles.playHeader}>
         <View>
@@ -506,7 +506,7 @@ export const ChallengeScreen: React.FC<{ navigation?: any }> = ({ navigation }) 
       {/* Digit indicator */}
       <Text style={styles.digitIndicator}>Digit {currentPos - actualStart + 1}</Text>
 
-      {/* Number pad - fixed height buttons */}
+      {/* Number pad */}
       <View style={styles.numPad}>
         {numpadRows.map((row, ri) => (
           <View key={ri} style={styles.numPadRow}>
@@ -526,7 +526,7 @@ export const ChallengeScreen: React.FC<{ navigation?: any }> = ({ navigation }) 
           </View>
         ))}
       </View>
-    </ScrollView>
+    </View>
   );
 };
 
@@ -539,7 +539,7 @@ const styles = StyleSheet.create({
   setupScroll: {
     alignItems: 'center',
     paddingHorizontal: 24,
-    paddingBottom: 120,
+    paddingBottom: 40,
   },
   logoContainer: {
     flexDirection: 'row',
@@ -728,10 +728,10 @@ const styles = StyleSheet.create({
   },
   digitIndicator: {
     color: '#CCCCCC',
-    fontSize: 16,
+    fontSize: 18,
     fontFamily: 'monospace',
     textAlign: 'center',
-    marginBottom: 4,
+    marginBottom: 8,
   },
   // History
   historyPanel: {
@@ -754,10 +754,10 @@ const styles = StyleSheet.create({
   },
   // Progress
   progressBar: {
-    height: 4,
+    height: 6,
     backgroundColor: '#333333',
     marginHorizontal: 16,
-    marginBottom: 8,
+    marginBottom: 24,
     overflow: 'hidden',
   },
   progressFill: {
@@ -768,9 +768,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 24,
     backgroundColor: '#111111',
-    padding: 12,
+    padding: 20,
     marginHorizontal: 16,
     borderWidth: 1,
     borderColor: '#333333',
@@ -787,36 +787,33 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginLeft: 8,
   },
-  playScrollContent: {
-    paddingBottom: 120,
-  },
-  // Number pad - fixed height, always visible
+  // Number pad
   numPad: {
-    gap: 6,
+    flex: 1,
+    justifyContent: 'center',
+    gap: 8,
     paddingHorizontal: '5%',
-    marginTop: 8,
   },
   numPadRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 6,
+    gap: 8,
   },
   numPadButton: {
-    flex: 1,
-    height: 52,
+    width: '28%',
+    aspectRatio: 1.3,
     borderWidth: 1,
     borderColor: '#444444',
     backgroundColor: '#111111',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 4,
   },
   numPadEmpty: {
-    flex: 1,
-    height: 52,
+    width: '28%',
+    aspectRatio: 1.3,
   },
   numPadText: {
-    fontSize: 22,
+    fontSize: 24,
     color: '#CCCCCC',
     fontWeight: '500',
     fontFamily: 'monospace',
