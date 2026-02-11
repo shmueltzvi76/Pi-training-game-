@@ -588,8 +588,8 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   controlBtn: {
-    width: 56,
-    height: 56,
+    width: 50,
+    height: 50,
     borderWidth: 1,
     borderColor: '#666666',
     alignItems: 'center',
@@ -792,7 +792,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     gap: 8,
-    paddingHorizontal: 16,
+    paddingHorizontal: '5%',
   },
   numPadRow: {
     flexDirection: 'row',
@@ -800,8 +800,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   numPadButton: {
-    width: 80,
-    height: 60,
+    width: '28%',
+    aspectRatio: 1.3,
     borderWidth: 1,
     borderColor: '#444444',
     backgroundColor: '#111111',
@@ -809,8 +809,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   numPadEmpty: {
-    width: 80,
-    height: 60,
+    width: '28%',
+    aspectRatio: 1.3,
   },
   numPadText: {
     fontSize: 24,

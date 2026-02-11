@@ -940,8 +940,8 @@ const styles = StyleSheet.create({
   // Number pad
   numPad: {
     width: '100%',
-    maxWidth: 300,
     gap: 8,
+    paddingHorizontal: '5%',
   },
   numPadRow: {
     flexDirection: 'row',
@@ -949,8 +949,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   numPadButton: {
-    width: 72,
-    height: 56,
+    width: '28%',
+    aspectRatio: 1.3,
     borderWidth: 1,
     borderColor: '#444444',
     backgroundColor: '#111111',
@@ -958,8 +958,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   numPadEmpty: {
-    width: 72,
-    height: 56,
+    width: '28%',
+    aspectRatio: 1.3,
   },
   numPadDelete: {
     backgroundColor: '#1A1A1A',
