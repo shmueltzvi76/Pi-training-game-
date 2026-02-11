@@ -1,5 +1,31 @@
 import { UserData } from '../types';
 
+// Cross-platform base64 (works in React Native + Web)
+const base64Decode = (str: string): string => {
+  try {
+    return decodeURIComponent(
+      atob(str.replace(/\s/g, ''))
+        .split('')
+        .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+  } catch {
+    return atob(str.replace(/\s/g, ''));
+  }
+};
+
+const base64Encode = (str: string): string => {
+  try {
+    return btoa(
+      encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (_, p1) =>
+        String.fromCharCode(parseInt(p1, 16))
+      )
+    );
+  } catch {
+    return btoa(str);
+  }
+};
+
 // מנג'ר לסנכרון עם GitHub
 class GitHubSyncManager {
   private token: string | null = null;
@@ -46,7 +72,7 @@ class GitHubSyncManager {
       }
 
       const data = await response.json();
-      const content = Buffer.from(data.content, 'base64').toString('utf-8');
+      const content = base64Decode(data.content);
       return JSON.parse(content);
     } catch (error) {
       console.error('Error fetching from GitHub:', error);
@@ -82,7 +108,7 @@ class GitHubSyncManager {
       }
 
       // המרת הנתונים ל-base64
-      const content = Buffer.from(JSON.stringify(userData, null, 2)).toString('base64');
+      const content = base64Encode(JSON.stringify(userData, null, 2));
 
       // שליחת הנתונים
       const url = `https://api.github.com/repos/${this.owner}/${this.repo}/contents/${this.dataPath}`;

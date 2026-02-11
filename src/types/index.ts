@@ -87,7 +87,7 @@ export interface CalendarTask {
 
 // הגדרות משתמש
 export interface UserSettings {
-  displayFormat: 1 | 2 | 4 | 8 | 9 | 10;  // פורמט תצוגת ספרות
+  displayFormat: 1 | 2 | 5 | 10 | 15 | 20;  // פורמט תצוגת ספרות
   rtlEnabled: boolean;                     // תמיכה ב-RTL
   soundEnabled: boolean;                   // צלילים
   hapticEnabled: boolean;                  // רטט
@@ -96,6 +96,11 @@ export interface UserSettings {
   weeklyFrequency: number;                 // כמה פעמים בשבוע
   githubSyncEnabled: boolean;              // חיבור ל-GitHub
   googleCalendarEnabled: boolean;          // חיבור ליומן גוגל
+  challengeStartDigitBookmark?: number;    // סימניה - ספרת התחלה באתגר
+  challengeLengthBookmark?: number;        // סימניה - אורך אתגר
+  trainingStartDigitBookmark?: number;     // סימניה - ספרת התחלה באימון
+  trainingEndDigitBookmark?: number;       // סימניה - ספרת סיום באימון
+  numpadReversed?: boolean;                // היפוך סדר Numpad (1-2-3 למעלה)
 }
 
 // נתוני משתמש מלאים
