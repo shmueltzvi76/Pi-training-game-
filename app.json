@@ -7,6 +7,9 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
+    "experiments": {
+      "baseUrl": "/Pi-training-game-"
+    },
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
