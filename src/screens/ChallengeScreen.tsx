@@ -728,10 +728,10 @@ const styles = StyleSheet.create({
   },
   digitIndicator: {
     color: '#CCCCCC',
-    fontSize: 18,
+    fontSize: 16,
     fontFamily: 'monospace',
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   // History
   historyPanel: {
@@ -754,10 +754,10 @@ const styles = StyleSheet.create({
   },
   // Progress
   progressBar: {
-    height: 6,
+    height: 4,
     backgroundColor: '#333333',
     marginHorizontal: 16,
-    marginBottom: 24,
+    marginBottom: 8,
     overflow: 'hidden',
   },
   progressFill: {
@@ -768,9 +768,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 8,
     backgroundColor: '#111111',
-    padding: 20,
+    padding: 12,
     marginHorizontal: 16,
     borderWidth: 1,
     borderColor: '#333333',
@@ -801,7 +801,7 @@ const styles = StyleSheet.create({
   },
   numPadButton: {
     width: '28%',
-    aspectRatio: 1.3,
+    aspectRatio: 1.6,
     borderWidth: 1,
     borderColor: '#444444',
     backgroundColor: '#111111',
@@ -810,7 +810,7 @@ const styles = StyleSheet.create({
   },
   numPadEmpty: {
     width: '28%',
-    aspectRatio: 1.3,
+    aspectRatio: 1.6,
   },
   numPadText: {
     fontSize: 24,
