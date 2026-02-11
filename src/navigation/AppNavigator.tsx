@@ -1,7 +1,7 @@
 import React from 'react';
 import { createDrawerNavigator } from '@react-navigation/drawer';
 import { NavigationContainer } from '@react-navigation/native';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Platform, TouchableOpacity } from 'react-native';
 import { Theme } from '@constants/theme';
 import { HomeScreen } from '@screens/HomeScreen';
 import { TrainingScreen } from '@screens/TrainingScreen';
@@ -34,14 +34,18 @@ const CustomDrawerContent = ({ navigation }: any) => {
         <Text style={drawerStyles.headerTitle}>משחק זיכרון פאי</Text>
       </View>
       {menuItems.map((item) => (
-        <View key={item.name} style={drawerStyles.itemWrapper}>
-          <Text
-            style={drawerStyles.item}
-            onPress={() => navigation.navigate(item.name)}
-          >
+        <TouchableOpacity
+          key={item.name}
+          style={drawerStyles.itemWrapper}
+          onPress={() => {
+            navigation.navigate(item.name);
+            navigation.closeDrawer();
+          }}
+        >
+          <Text style={drawerStyles.item}>
             {item.icon}  {item.label}
           </Text>
-        </View>
+        </TouchableOpacity>
       ))}
     </View>
   );
@@ -96,9 +100,14 @@ export const AppNavigator: React.FC = () => {
             fontWeight: Theme.fontWeight.bold,
           },
           drawerPosition: 'right',
+          drawerType: 'front',
+          overlayColor: 'rgba(0,0,0,0.7)',
           drawerStyle: {
             backgroundColor: Theme.colors.background,
             width: 260,
+          },
+          sceneContainerStyle: {
+            backgroundColor: Theme.colors.background,
           },
         }}
       >
