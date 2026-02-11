@@ -784,7 +784,7 @@ const styles = StyleSheet.create({
   // Learn mode
   learnContainer: {
     alignItems: 'center',
-    paddingTop: 24,
+    paddingTop: 8,
   },
   learnLabel: {
     color: '#999999',
@@ -833,7 +833,7 @@ const styles = StyleSheet.create({
   learnControls: {
     flexDirection: 'row',
     gap: 16,
-    marginTop: 24,
+    marginTop: 12,
   },
   navBtn: {
     paddingHorizontal: 24,
@@ -950,7 +950,7 @@ const styles = StyleSheet.create({
   },
   numPadButton: {
     width: '28%',
-    aspectRatio: 1.3,
+    aspectRatio: 1.6,
     borderWidth: 1,
     borderColor: '#444444',
     backgroundColor: '#111111',
@@ -959,7 +959,7 @@ const styles = StyleSheet.create({
   },
   numPadEmpty: {
     width: '28%',
-    aspectRatio: 1.3,
+    aspectRatio: 1.6,
   },
   numPadDelete: {
     backgroundColor: '#1A1A1A',
