@@ -43,17 +43,33 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
   const [lives, setLives] = useState(3);
   const [totalCorrect, setTotalCorrect] = useState(0);
   const [totalIncorrect, setTotalIncorrect] = useState(0);
+  const [numpadReversed, setNumpadReversed] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [typedHistory, setTypedHistory] = useState<string[]>([]);
   const inputRef = useRef<TextInput>(null);
   const mountedRef = useRef(true);
   const timeoutRefs = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const historyScrollRef = useRef<ScrollView>(null);
 
   useEffect(() => {
     loadBookmarks();
+    loadNumpadSetting();
     return () => {
       mountedRef.current = false;
       timeoutRefs.current.forEach(t => clearTimeout(t));
     };
   }, []);
+
+  const loadNumpadSetting = async () => {
+    try {
+      const data = await StorageManager.getAllUserData();
+      if (data.settings?.numpadReversed) {
+        setNumpadReversed(true);
+      }
+    } catch (e) {
+      // ignore
+    }
+  };
 
   const loadBookmarks = async () => {
     try {
@@ -136,6 +152,8 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
     setLives(3);
     setTotalCorrect(0);
     setTotalIncorrect(0);
+    setTypedHistory([]);
+    setShowHistory(false);
   };
 
   const saveProgress = async (pos: number) => {
@@ -175,6 +193,7 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
       setTypedDigits(newTyped);
       setIsCorrect(true);
       setTotalCorrect(prev => prev + 1);
+      setTypedHistory(prev => [...prev, digit]);
 
       if (newTyped.length >= groupSize) {
         const nextPos = currentPos + newTyped.length;
@@ -305,12 +324,9 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
 
   // Number pad
   const renderNumberPad = () => {
-    const rows = [
-      ['1', '2', '3'],
-      ['4', '5', '6'],
-      ['7', '8', '9'],
-      ['', '0', 'x'],
-    ];
+    const rows = numpadReversed
+      ? [['1', '2', '3'], ['4', '5', '6'], ['7', '8', '9'], ['', '0', 'x']]
+      : [['7', '8', '9'], ['4', '5', '6'], ['1', '2', '3'], ['', '0', 'x']];
 
     return (
       <View style={styles.numPad}>
@@ -465,6 +481,11 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
           </Text>
         </View>
 
+        {/* Digit indicator / Wrong Digit text */}
+        <Text style={[styles.digitIndicator, isCorrect === false && styles.digitIndicatorWrong]}>
+          {isCorrect === false ? 'Wrong Digit' : `Digit ${currentPos + 1}`}
+        </Text>
+
         {/* Score */}
         <View style={styles.scoreRow}>
           <Text style={styles.scoreText}>Correct: {totalCorrect}</Text>
@@ -477,9 +498,52 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
     );
   };
 
+  // Render history panel
+  const renderHistoryPanel = () => {
+    if (!showHistory || typedHistory.length === 0) return null;
+    const historyStr = typedHistory.join('');
+    // Format in groups of 10
+    const groups: string[] = [];
+    for (let i = 0; i < historyStr.length; i += 10) {
+      groups.push(historyStr.slice(i, i + 10));
+    }
+    return (
+      <View style={styles.historyPanel}>
+        <ScrollView
+          ref={historyScrollRef}
+          style={styles.historyScroll}
+          onContentSizeChange={() => historyScrollRef.current?.scrollToEnd()}
+        >
+          <Text style={styles.historyText}>{groups.join(' ')}</Text>
+        </ScrollView>
+      </View>
+    );
+  };
+
   // Playing screen
   return (
     <View style={styles.container}>
+      {/* Header with info */}
+      <View style={styles.playingHeader}>
+        <Text style={styles.playingHeaderText}>Start at {setupStartDigit} digit</Text>
+        <View style={styles.playingHeaderRight}>
+          <Text style={styles.playingHeaderText}>Training Mode</Text>
+          <TouchableOpacity onPress={() => setTrainingState('setup')}>
+            <Text style={styles.closeBtn}>{'\u2715'}</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Count and scroll icon */}
+      <View style={styles.countRow}>
+        <Text style={styles.countText}>Count {mode === 'type' ? totalCorrect : 0}</Text>
+        <TouchableOpacity onPress={() => setShowHistory(prev => !prev)}>
+          <Text style={[styles.scrollIcon, showHistory && { color: '#14B8A6' }]}>{'\u21C5'}</Text>
+        </TouchableOpacity>
+      </View>
+
+      {renderHistoryPanel()}
+
       {/* Mode selector */}
       <View style={styles.modeSelector}>
         <TouchableOpacity
@@ -937,5 +1001,80 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'monospace',
     fontWeight: '600',
+  },
+  // Digit indicator
+  digitIndicator: {
+    color: '#CCCCCC',
+    fontSize: 18,
+    fontFamily: 'monospace',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  digitIndicatorWrong: {
+    color: '#EF4444',
+    fontWeight: '700',
+  },
+  // Playing header
+  playingHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    paddingBottom: 4,
+  },
+  playingHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  playingHeaderText: {
+    color: '#999999',
+    fontSize: 13,
+    fontFamily: 'monospace',
+  },
+  closeBtn: {
+    color: '#CCCCCC',
+    fontSize: 20,
+    fontWeight: '700',
+    paddingHorizontal: 4,
+  },
+  // Count and scroll
+  countRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    gap: 8,
+    marginBottom: 4,
+  },
+  countText: {
+    color: '#999999',
+    fontSize: 14,
+    fontFamily: 'monospace',
+  },
+  scrollIcon: {
+    color: '#999999',
+    fontSize: 24,
+    fontWeight: '700',
+  },
+  // History panel
+  historyPanel: {
+    backgroundColor: '#111111',
+    borderWidth: 1,
+    borderColor: '#333333',
+    marginHorizontal: 16,
+    marginBottom: 8,
+    maxHeight: 120,
+    padding: 8,
+  },
+  historyScroll: {
+    flex: 1,
+  },
+  historyText: {
+    color: '#14B8A6',
+    fontSize: 14,
+    fontFamily: 'monospace',
+    letterSpacing: 1,
   },
 });

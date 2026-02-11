@@ -100,6 +100,7 @@ export interface UserSettings {
   challengeLengthBookmark?: number;        // סימניה - אורך אתגר
   trainingStartDigitBookmark?: number;     // סימניה - ספרת התחלה באימון
   trainingEndDigitBookmark?: number;       // סימניה - ספרת סיום באימון
+  numpadReversed?: boolean;                // היפוך סדר Numpad (1-2-3 למעלה)
 }
 
 // נתוני משתמש מלאים

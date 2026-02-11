@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -44,14 +44,35 @@ export const ChallengeScreen: React.FC<{ navigation?: any }> = ({ navigation }) 
   const [leaderName, setLeaderName] = useState('---');
   const [leaderScore, setLeaderScore] = useState(0);
 
+  // Best time
+  const [bestTime, setBestTime] = useState<number | null>(null);
+
+  // Numpad & history
+  const [numpadReversed, setNumpadReversed] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [typedHistory, setTypedHistory] = useState<string[]>([]);
+  const historyScrollRef = useRef<ScrollView>(null);
+
   useEffect(() => {
     loadBookmarks();
     loadLeaderboard();
+    loadNumpadSetting();
     return () => {
       if (timerInterval) clearInterval(timerInterval);
       if (thinkingInterval) clearInterval(thinkingInterval);
     };
   }, [timerInterval, thinkingInterval]);
+
+  const loadNumpadSetting = async () => {
+    try {
+      const data = await StorageManager.getAllUserData();
+      if (data.settings?.numpadReversed) {
+        setNumpadReversed(true);
+      }
+    } catch (e) {
+      // ignore
+    }
+  };
 
   const loadBookmarks = async () => {
     try {
@@ -72,17 +93,25 @@ export const ChallengeScreen: React.FC<{ navigation?: any }> = ({ navigation }) 
     try {
       const data = await StorageManager.getAllUserData();
       const sessions = data.sessions || [];
-      // Find best completed challenge session
       let best = 0;
+      let fastestTime: number | null = null;
       sessions.forEach((s: any) => {
-        if (s.mode === 'challenge' && s.completed && s.stats?.correctCount > best) {
-          best = s.stats.correctCount;
+        if (s.mode === 'challenge' && s.completed) {
+          if (s.stats?.correctCount > best) {
+            best = s.stats.correctCount;
+          }
+          if (s.stats?.timeElapsed != null) {
+            if (fastestTime === null || s.stats.timeElapsed < fastestTime) {
+              fastestTime = s.stats.timeElapsed;
+            }
+          }
         }
       });
       if (best > 0) {
         setLeaderName('You');
         setLeaderScore(best);
       }
+      setBestTime(fastestTime);
     } catch (e) {
       // ignore
     }
@@ -160,6 +189,8 @@ export const ChallengeScreen: React.FC<{ navigation?: any }> = ({ navigation }) 
     setLives(3);
     setCorrectCount(0);
     setTimer(0);
+    setTypedHistory([]);
+    setShowHistory(false);
 
     const interval = setInterval(() => setTimer(t => t + 1), 1000);
     setTimerInterval(interval);
@@ -223,6 +254,7 @@ export const ChallengeScreen: React.FC<{ navigation?: any }> = ({ navigation }) 
     if (digit === expected) {
       const newCorrect = correctCount + 1;
       setCorrectCount(newCorrect);
+      setTypedHistory(prev => [...prev, digit]);
       const nextPos = currentPos + 1;
       setCurrentPos(nextPos);
 
@@ -386,23 +418,73 @@ export const ChallengeScreen: React.FC<{ navigation?: any }> = ({ navigation }) 
   const actualStart = startDigit - 1;
   const progress = challengeLength > 0 ? ((currentPos - actualStart) / challengeLength) * 100 : 0;
   const thinkTime = getThinkingTime();
+  const bestTimeStr = bestTime !== null ? formatTime(bestTime) : null;
+
+  const numpadRows = numpadReversed
+    ? [[1, 2, 3], [4, 5, 6], [7, 8, 9], [null, 0, null]]
+    : [[7, 8, 9], [4, 5, 6], [1, 2, 3], [null, 0, null]];
+
+  // History panel
+  const renderChallengeHistory = () => {
+    if (!showHistory || typedHistory.length === 0) return null;
+    const historyStr = typedHistory.join('');
+    const groups: string[] = [];
+    for (let i = 0; i < historyStr.length; i += 10) {
+      groups.push(historyStr.slice(i, i + 10));
+    }
+    return (
+      <View style={styles.historyPanel}>
+        <ScrollView
+          ref={historyScrollRef}
+          style={styles.historyScroll}
+          onContentSizeChange={() => historyScrollRef.current?.scrollToEnd()}
+        >
+          <Text style={styles.historyText}>{groups.join(' ')}</Text>
+        </ScrollView>
+      </View>
+    );
+  };
 
   return (
     <View style={styles.container}>
-      {/* Status */}
-      <View style={styles.playStatus}>
-        <Text style={styles.playTimer}>{formatTime(timer)}</Text>
-        {thinkTime > 0 && (
-          <Text style={[styles.playTimer, thinkingTimer <= 3 && { color: '#EF4444' }]}>
-            {thinkingTimer}s
+      {/* Header */}
+      <View style={styles.playHeader}>
+        <View>
+          <Text style={styles.playHeaderInfo}>
+            Start at {startDigit} digit, memorize {challengeLength} digits
           </Text>
-        )}
+          {bestTimeStr && (
+            <Text style={styles.playBestTime}>Best {bestTimeStr}</Text>
+          )}
+        </View>
+        <View style={styles.playHeaderRight}>
+          <Text style={styles.playTimer}>{formatTime(timer)}</Text>
+          <TouchableOpacity onPress={() => endChallenge(false)}>
+            <Text style={styles.closeBtn}>{'\u2715'}</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Status: lives, count, scroll icon */}
+      <View style={styles.playStatus}>
         <Text style={styles.playLives}>
           {Array(lives).fill('\u2764\uFE0F').join('')}
           {Array(3 - lives).fill('\uD83D\uDDA4').join('')}
         </Text>
-        <Text style={styles.playProgress}>{correctCount}/{challengeLength}</Text>
+        {thinkTime > 0 && (
+          <Text style={[styles.playTimerSmall, thinkingTimer <= 3 && { color: '#EF4444' }]}>
+            {thinkingTimer}s
+          </Text>
+        )}
+        <View style={styles.countRow}>
+          <Text style={styles.countText}>Count {correctCount}</Text>
+          <TouchableOpacity onPress={() => setShowHistory(prev => !prev)}>
+            <Text style={[styles.scrollIcon, showHistory && { color: '#14B8A6' }]}>{'\u21C5'}</Text>
+          </TouchableOpacity>
+        </View>
       </View>
+
+      {renderChallengeHistory()}
 
       {/* Progress bar */}
       <View style={styles.progressBar}>
@@ -417,9 +499,12 @@ export const ChallengeScreen: React.FC<{ navigation?: any }> = ({ navigation }) 
         <Text style={styles.hintCurrent}>?</Text>
       </View>
 
+      {/* Digit indicator */}
+      <Text style={styles.digitIndicator}>Digit {currentPos - actualStart + 1}</Text>
+
       {/* Number pad */}
       <View style={styles.numPad}>
-        {[[1, 2, 3], [4, 5, 6], [7, 8, 9], [null, 0, null]].map((row, ri) => (
+        {numpadRows.map((row, ri) => (
           <View key={ri} style={styles.numPadRow}>
             {row.map((digit, ci) => {
               if (digit === null) return <View key={ci} style={styles.numPadEmpty} />;
@@ -573,27 +658,97 @@ const styles = StyleSheet.create({
     fontFamily: 'monospace',
   },
   // Playing
+  playHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    paddingHorizontal: 12,
+    paddingTop: 8,
+  },
+  playHeaderInfo: {
+    color: '#999999',
+    fontSize: 13,
+    fontFamily: 'monospace',
+  },
+  playBestTime: {
+    color: '#999999',
+    fontSize: 13,
+    fontFamily: 'monospace',
+  },
+  playHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  closeBtn: {
+    color: '#CCCCCC',
+    fontSize: 20,
+    fontWeight: '700',
+    paddingHorizontal: 4,
+  },
   playStatus: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
   playTimer: {
-    fontSize: 20,
+    fontSize: 16,
     color: '#CCCCCC',
     fontWeight: '600',
+    fontFamily: 'monospace',
+  },
+  playTimerSmall: {
+    fontSize: 14,
+    color: '#CCCCCC',
     fontFamily: 'monospace',
   },
   playLives: {
     fontSize: 18,
   },
-  playProgress: {
-    fontSize: 18,
-    color: '#14B8A6',
-    fontWeight: '600',
+  countRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  countText: {
+    color: '#999999',
+    fontSize: 14,
     fontFamily: 'monospace',
   },
+  scrollIcon: {
+    color: '#999999',
+    fontSize: 22,
+    fontWeight: '700',
+  },
+  digitIndicator: {
+    color: '#CCCCCC',
+    fontSize: 18,
+    fontFamily: 'monospace',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  // History
+  historyPanel: {
+    backgroundColor: '#111111',
+    borderWidth: 1,
+    borderColor: '#333333',
+    marginHorizontal: 16,
+    marginBottom: 8,
+    maxHeight: 100,
+    padding: 8,
+  },
+  historyScroll: {
+    flex: 1,
+  },
+  historyText: {
+    color: '#14B8A6',
+    fontSize: 14,
+    fontFamily: 'monospace',
+    letterSpacing: 1,
+  },
+  // Progress
   progressBar: {
     height: 6,
     backgroundColor: '#333333',

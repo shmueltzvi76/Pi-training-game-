@@ -152,6 +152,15 @@ export const SettingsScreen: React.FC<{ navigation?: any }> = () => {
           />
           <Text style={styles.toggleLabel}>רטט</Text>
         </View>
+
+        <View style={styles.toggleRow}>
+          <Switch
+            value={settings.numpadReversed ?? false}
+            onValueChange={(v) => updateSetting('numpadReversed', v)}
+            trackColor={{ true: Theme.colors.primary }}
+          />
+          <Text style={styles.toggleLabel}>היפוך Numpad (1-2-3 למעלה)</Text>
+        </View>
       </View>
 
       {/* Info */}
