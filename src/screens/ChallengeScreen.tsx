@@ -450,7 +450,7 @@ export const ChallengeScreen: React.FC<{ navigation?: any }> = ({ navigation }) 
   };
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.playScrollContent}>
       {/* Header */}
       <View style={styles.playHeader}>
         <View>
@@ -506,7 +506,7 @@ export const ChallengeScreen: React.FC<{ navigation?: any }> = ({ navigation }) 
       {/* Digit indicator */}
       <Text style={styles.digitIndicator}>Digit {currentPos - actualStart + 1}</Text>
 
-      {/* Number pad - flex fills remaining space */}
+      {/* Number pad - fixed height buttons */}
       <View style={styles.numPad}>
         {numpadRows.map((row, ri) => (
           <View key={ri} style={styles.numPadRow}>
@@ -526,7 +526,7 @@ export const ChallengeScreen: React.FC<{ navigation?: any }> = ({ navigation }) 
           </View>
         ))}
       </View>
-    </View>
+    </ScrollView>
   );
 };
 
@@ -539,7 +539,7 @@ const styles = StyleSheet.create({
   setupScroll: {
     alignItems: 'center',
     paddingHorizontal: 24,
-    paddingBottom: 40,
+    paddingBottom: 120,
   },
   logoContainer: {
     flexDirection: 'row',
@@ -787,24 +787,23 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginLeft: 8,
   },
-  // Number pad - flex-based, fills remaining screen space
+  playScrollContent: {
+    paddingBottom: 120,
+  },
+  // Number pad - fixed height, always visible
   numPad: {
-    flex: 1,
-    justifyContent: 'flex-end',
     gap: 6,
     paddingHorizontal: '5%',
-    paddingBottom: 8,
+    marginTop: 8,
   },
   numPadRow: {
     flexDirection: 'row',
     justifyContent: 'center',
     gap: 6,
-    flex: 1,
-    maxHeight: 64,
   },
   numPadButton: {
     flex: 1,
-    maxWidth: '30%',
+    height: 52,
     borderWidth: 1,
     borderColor: '#444444',
     backgroundColor: '#111111',
@@ -814,7 +813,7 @@ const styles = StyleSheet.create({
   },
   numPadEmpty: {
     flex: 1,
-    maxWidth: '30%',
+    height: 52,
   },
   numPadText: {
     fontSize: 22,

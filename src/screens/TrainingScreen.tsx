@@ -523,7 +523,7 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
 
   // Playing screen
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.playScrollContent}>
       {/* Header with info */}
       <View style={styles.playingHeader}>
         <Text style={styles.playingHeaderText}>Start at {setupStartDigit} digit</Text>
@@ -581,11 +581,9 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
         ))}
       </View>
 
-      {/* Content area fills remaining space */}
-      <View style={styles.contentArea}>
-        {mode === 'learn' ? renderLearnMode() : renderTypeMode()}
-      </View>
-    </View>
+      {/* Content */}
+      {mode === 'learn' ? renderLearnMode() : renderTypeMode()}
+    </ScrollView>
   );
 };
 
@@ -594,15 +592,15 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000000',
   },
-  contentArea: {
-    flex: 1,
-    padding: 8,
+  playScrollContent: {
+    paddingBottom: 120,
+    paddingHorizontal: 8,
   },
   // Setup screen
   setupScroll: {
     alignItems: 'center',
     paddingHorizontal: 24,
-    paddingBottom: 40,
+    paddingBottom: 120,
   },
   logoContainer: {
     flexDirection: 'row',
@@ -931,24 +929,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'monospace',
   },
-  // Number pad - flex-based, fills remaining space
+  // Number pad - fixed height, always visible
   numPad: {
-    flex: 1,
-    justifyContent: 'flex-end',
     gap: 6,
     paddingHorizontal: '5%',
-    paddingBottom: 8,
+    marginTop: 8,
   },
   numPadRow: {
     flexDirection: 'row',
     justifyContent: 'center',
     gap: 6,
-    flex: 1,
-    maxHeight: 64,
   },
   numPadButton: {
     flex: 1,
-    maxWidth: '30%',
+    height: 52,
     borderWidth: 1,
     borderColor: '#444444',
     backgroundColor: '#111111',
@@ -958,7 +952,7 @@ const styles = StyleSheet.create({
   },
   numPadEmpty: {
     flex: 1,
-    maxWidth: '30%',
+    height: 52,
   },
   numPadDelete: {
     backgroundColor: '#1A1A1A',
