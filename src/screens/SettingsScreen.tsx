@@ -7,6 +7,7 @@ import {
   Switch,
   TouchableOpacity,
   Alert,
+  Platform,
 } from 'react-native';
 import { Theme } from '@constants/theme';
 import StorageManager from '@storage/StorageManager';
@@ -45,23 +46,31 @@ export const SettingsScreen: React.FC<{ navigation?: any }> = () => {
     await StorageManager.saveSettings(newSettings);
   };
 
-  const confirmClearData = () => {
-    Alert.alert(
-      'מחיקת כל הנתונים',
-      'פעולה זו תמחק את כל ההתקדמות, הפתקים, וההגדרות. האם אתה בטוח?',
-      [
-        { text: 'ביטול', style: 'cancel' },
-        {
-          text: 'מחק הכל',
-          style: 'destructive',
-          onPress: async () => {
-            await StorageManager.clearAllData();
-            loadSettings();
-            Alert.alert('הנתונים נמחקו');
+  const confirmClearData = async () => {
+    if (Platform.OS === 'web') {
+      if (window.confirm('מחיקת כל הנתונים - פעולה זו תמחק את כל ההתקדמות, הפתקים, וההגדרות. האם אתה בטוח?')) {
+        await StorageManager.clearAllData();
+        loadSettings();
+        window.alert('הנתונים נמחקו');
+      }
+    } else {
+      Alert.alert(
+        'מחיקת כל הנתונים',
+        'פעולה זו תמחק את כל ההתקדמות, הפתקים, וההגדרות. האם אתה בטוח?',
+        [
+          { text: 'ביטול', style: 'cancel' },
+          {
+            text: 'מחק הכל',
+            style: 'destructive',
+            onPress: async () => {
+              await StorageManager.clearAllData();
+              loadSettings();
+              Alert.alert('הנתונים נמחקו');
+            },
           },
-        },
-      ]
-    );
+        ]
+      );
+    }
   };
 
   return (

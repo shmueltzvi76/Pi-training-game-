@@ -159,19 +159,27 @@ export const RecordingsScreen: React.FC<{ navigation?: any }> = () => {
     }
   };
 
-  const deleteRecording = (id: string) => {
-    Alert.alert('מחיקת הקלטה', 'האם אתה בטוח?', [
-      { text: 'ביטול', style: 'cancel' },
-      {
-        text: 'מחק',
-        style: 'destructive',
-        onPress: async () => {
-          await StorageManager.deleteRecording(id);
-          if (isPlaying === id) await stopPlayback();
-          loadRecordings();
+  const deleteRecording = async (id: string) => {
+    if (Platform.OS === 'web') {
+      if (window.confirm('מחיקת הקלטה - האם אתה בטוח?')) {
+        await StorageManager.deleteRecording(id);
+        if (isPlaying === id) await stopPlayback();
+        loadRecordings();
+      }
+    } else {
+      Alert.alert('מחיקת הקלטה', 'האם אתה בטוח?', [
+        { text: 'ביטול', style: 'cancel' },
+        {
+          text: 'מחק',
+          style: 'destructive',
+          onPress: async () => {
+            await StorageManager.deleteRecording(id);
+            if (isPlaying === id) await stopPlayback();
+            loadRecordings();
+          },
         },
-      },
-    ]);
+      ]);
+    }
   };
 
   const saveTitle = async (id: string) => {
