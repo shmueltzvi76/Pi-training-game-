@@ -7,6 +7,7 @@ import {
   ScrollView,
   TextInput,
   Alert,
+  Platform,
 } from 'react-native';
 import { Theme } from '@constants/theme';
 import { PI_DIGITS, getDigitRange, formatDigits } from '@constants/piDigits';
@@ -140,7 +141,11 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
 
   const startTraining = () => {
     if (hasEndLimit && setupEndDigit <= setupStartDigit) {
-      Alert.alert('Error', 'End digit must be greater than start digit');
+      if (Platform.OS === 'web') {
+        window.alert('End digit must be greater than start digit');
+      } else {
+        Alert.alert('Error', 'End digit must be greater than start digit');
+      }
       return;
     }
     const pos = setupStartDigit - 1; // convert to 0-based
@@ -219,10 +224,23 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
       setStreak(0);
       setLives(prev => {
         if (prev <= 1) {
-          Alert.alert('Game Over!', `You reached digit ${currentPos + 1}. Want to restart?`, [
-            { text: 'Yes', onPress: () => resetGame() },
-            { text: 'Continue here', onPress: () => setLives(3) },
-          ]);
+          const t3 = setTimeout(() => {
+            if (!mountedRef.current) return;
+            if (Platform.OS === 'web') {
+              const restart = window.confirm(`Game Over! You reached digit ${currentPos + 1}. Want to restart?`);
+              if (restart) {
+                resetGame();
+              } else {
+                setLives(3);
+              }
+            } else {
+              Alert.alert('Game Over!', `You reached digit ${currentPos + 1}. Want to restart?`, [
+                { text: 'Yes', onPress: () => resetGame() },
+                { text: 'Continue here', onPress: () => setLives(3) },
+              ]);
+            }
+          }, 100);
+          timeoutRefs.current.push(t3);
           return 0;
         }
         return prev - 1;
