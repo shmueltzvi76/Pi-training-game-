@@ -539,13 +539,13 @@ const styles = StyleSheet.create({
   },
   playScrollContent: {
     flexGrow: 1,
-    paddingBottom: 100,
+    paddingBottom: 200,
   },
   // Setup screen
   setupScroll: {
     alignItems: 'center',
     paddingHorizontal: 24,
-    paddingBottom: 100,
+    paddingBottom: 200,
   },
   logoContainer: {
     flexDirection: 'row',
