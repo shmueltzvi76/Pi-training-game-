@@ -28,9 +28,9 @@ export const ChallengeScreen: React.FC<{ navigation?: any }> = ({ navigation }) 
   const [lives, setLives] = useState(3);
   const [correctCount, setCorrectCount] = useState(0);
   const [timer, setTimer] = useState(0);
-  const [timerInterval, setTimerInterval] = useState<ReturnType<typeof setInterval> | null>(null);
   const [thinkingTimer, setThinkingTimer] = useState(0);
-  const [thinkingInterval, setThinkingInterval] = useState<ReturnType<typeof setInterval> | null>(null);
+  const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const thinkingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Bookmarks
   const [savedStartDigit, setSavedStartDigit] = useState<number | null>(null);
@@ -58,10 +58,10 @@ export const ChallengeScreen: React.FC<{ navigation?: any }> = ({ navigation }) 
     loadLeaderboard();
     loadNumpadSetting();
     return () => {
-      if (timerInterval) clearInterval(timerInterval);
-      if (thinkingInterval) clearInterval(thinkingInterval);
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+      if (thinkingIntervalRef.current) clearInterval(thinkingIntervalRef.current);
     };
-  }, [timerInterval, thinkingInterval]);
+  }, []);
 
   const loadNumpadSetting = async () => {
     try {
@@ -193,7 +193,7 @@ export const ChallengeScreen: React.FC<{ navigation?: any }> = ({ navigation }) 
     setShowHistory(false);
 
     const interval = setInterval(() => setTimer(t => t + 1), 1000);
-    setTimerInterval(interval);
+    timerIntervalRef.current = interval;
 
     // Start thinking timer if not infinite
     const thinkTime = getThinkingTime();
@@ -206,9 +206,33 @@ export const ChallengeScreen: React.FC<{ navigation?: any }> = ({ navigation }) 
             setLives(l => {
               const newLives = l - 1;
               if (newLives <= 0) {
+                // Clear intervals directly via refs
+                if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+                if (thinkingIntervalRef.current) clearInterval(thinkingIntervalRef.current);
+                timerIntervalRef.current = null;
+                thinkingIntervalRef.current = null;
                 // Use functional update to get current correctCount
                 setCorrectCount(currentCorrect => {
-                  endChallenge(false, currentCorrect, 0);
+                  setTimer(currentTimer => {
+                    // Save session with actual values
+                    setState('finished');
+                    StorageManager.addSession({
+                      id: Date.now().toString(),
+                      mode: 'challenge',
+                      settings: { startDigit: startDigit - 1, challengeLength, thinkingTime: thinkTime },
+                      stats: {
+                        currentPosition: 0, // will be stale but ok for record
+                        correctCount: currentCorrect,
+                        incorrectCount: 3,
+                        lives: 0,
+                        timeElapsed: currentTimer,
+                        bestTime: null,
+                      },
+                      date: new Date().toISOString(),
+                      completed: false,
+                    });
+                    return currentTimer;
+                  });
                   return currentCorrect;
                 });
               }
@@ -219,15 +243,15 @@ export const ChallengeScreen: React.FC<{ navigation?: any }> = ({ navigation }) 
           return t - 1;
         });
       }, 1000);
-      setThinkingInterval(tInterval);
+      thinkingIntervalRef.current = tInterval;
     }
   };
 
   const endChallenge = (completed: boolean, finalCorrect?: number, finalLives?: number) => {
-    if (timerInterval) clearInterval(timerInterval);
-    if (thinkingInterval) clearInterval(thinkingInterval);
-    setTimerInterval(null);
-    setThinkingInterval(null);
+    if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    if (thinkingIntervalRef.current) clearInterval(thinkingIntervalRef.current);
+    timerIntervalRef.current = null;
+    thinkingIntervalRef.current = null;
     setState('finished');
 
     const savedCorrect = finalCorrect ?? correctCount;
