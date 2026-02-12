@@ -604,13 +604,13 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     padding: 16,
-    paddingBottom: 100,
+    paddingBottom: 200,
   },
   // Setup screen
   setupScroll: {
     alignItems: 'center',
     paddingHorizontal: 24,
-    paddingBottom: 100,
+    paddingBottom: 200,
   },
   logoContainer: {
     flexDirection: 'row',
