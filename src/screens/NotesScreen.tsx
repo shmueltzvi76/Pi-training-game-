@@ -7,6 +7,7 @@ import {
   TextInput,
   TouchableOpacity,
   Alert,
+  Platform,
 } from 'react-native';
 import { Theme } from '@constants/theme';
 import { Button } from '@components/Button';
@@ -68,17 +69,24 @@ export const NotesScreen: React.FC<{ navigation?: any }> = () => {
   };
 
   const deleteNote = async (noteId: string) => {
-    Alert.alert('מחיקת פתק', 'האם אתה בטוח?', [
-      { text: 'ביטול', style: 'cancel' },
-      {
-        text: 'מחק',
-        style: 'destructive',
-        onPress: async () => {
-          await StorageManager.deleteNote(noteId);
-          loadNotes();
+    if (Platform.OS === 'web') {
+      if (window.confirm('מחיקת פתק - האם אתה בטוח?')) {
+        await StorageManager.deleteNote(noteId);
+        loadNotes();
+      }
+    } else {
+      Alert.alert('מחיקת פתק', 'האם אתה בטוח?', [
+        { text: 'ביטול', style: 'cancel' },
+        {
+          text: 'מחק',
+          style: 'destructive',
+          onPress: async () => {
+            await StorageManager.deleteNote(noteId);
+            loadNotes();
+          },
         },
-      },
-    ]);
+      ]);
+    }
   };
 
   const editNote = (note: Note) => {
