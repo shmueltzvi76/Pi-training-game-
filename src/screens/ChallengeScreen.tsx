@@ -451,6 +451,7 @@ export const ChallengeScreen: React.FC<{ navigation?: any }> = ({ navigation }) 
 
   return (
     <View style={styles.container}>
+     <ScrollView contentContainerStyle={styles.playScrollContent} showsVerticalScrollIndicator={false}>
       {/* Header */}
       <View style={styles.playHeader}>
         <View>
@@ -526,6 +527,7 @@ export const ChallengeScreen: React.FC<{ navigation?: any }> = ({ navigation }) 
           </View>
         ))}
       </View>
+     </ScrollView>
     </View>
   );
 };
@@ -535,11 +537,15 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000000',
   },
+  playScrollContent: {
+    flexGrow: 1,
+    paddingBottom: 100,
+  },
   // Setup screen
   setupScroll: {
     alignItems: 'center',
     paddingHorizontal: 24,
-    paddingBottom: 40,
+    paddingBottom: 100,
   },
   logoContainer: {
     flexDirection: 'row',
