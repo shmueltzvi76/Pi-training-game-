@@ -761,7 +761,7 @@ const styles = StyleSheet.create({
   },
   // Digits
   digitsScroll: { flex: 1 },
-  digitsContainer: { padding: Theme.spacing.md },
+  digitsContainer: { padding: Theme.spacing.md, paddingBottom: 200 },
   piPrefix: {
     color: Theme.colors.accent,
     fontWeight: Theme.fontWeight.bold,
