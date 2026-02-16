@@ -13,6 +13,7 @@ import { Theme } from '@constants/theme';
 import { PI_DIGITS, getDigitRange, formatDigits } from '@constants/piDigits';
 import { Button } from '@components/Button';
 import StorageManager from '@storage/StorageManager';
+import { initFeedback, feedbackCorrect, feedbackWrong, feedbackGameOver } from '../utils/feedback';
 
 type TrainingState = 'setup' | 'playing';
 type TrainingMode = 'learn' | 'type';
@@ -55,6 +56,7 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
   useEffect(() => {
     loadBookmarks();
     loadNumpadSetting();
+    initFeedback();
     return () => {
       mountedRef.current = false;
       timeoutRefs.current.forEach(t => clearTimeout(t));
@@ -194,6 +196,7 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
     const expectedDigit = PI_DIGITS[currentPos + typedDigits.length];
 
     if (digit === expectedDigit) {
+      feedbackCorrect();
       const newTyped = typedDigits + digit;
       setTypedDigits(newTyped);
       setIsCorrect(true);
@@ -219,11 +222,13 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
         timeoutRefs.current.push(t1);
       }
     } else {
+      feedbackWrong();
       setIsCorrect(false);
       setTotalIncorrect(prev => prev + 1);
       setStreak(0);
       setLives(prev => {
         if (prev <= 1) {
+          feedbackGameOver();
           const t3 = setTimeout(() => {
             if (!mountedRef.current) return;
             if (Platform.OS === 'web') {

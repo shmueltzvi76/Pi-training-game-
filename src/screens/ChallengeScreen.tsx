@@ -10,6 +10,7 @@ import {
 import { Theme } from '@constants/theme';
 import { PI_DIGITS, getDigitRange } from '@constants/piDigits';
 import StorageManager from '@storage/StorageManager';
+import { initFeedback, feedbackCorrect, feedbackWrong, feedbackGameOver, feedbackVictory } from '../utils/feedback';
 
 type ChallengeState = 'setup' | 'playing' | 'finished';
 
@@ -57,6 +58,7 @@ export const ChallengeScreen: React.FC<{ navigation?: any }> = ({ navigation }) 
     loadBookmarks();
     loadLeaderboard();
     loadNumpadSetting();
+    initFeedback();
     return () => {
       if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
       if (thinkingIntervalRef.current) clearInterval(thinkingIntervalRef.current);
@@ -206,6 +208,7 @@ export const ChallengeScreen: React.FC<{ navigation?: any }> = ({ navigation }) 
             setLives(l => {
               const newLives = l - 1;
               if (newLives <= 0) {
+                feedbackGameOver();
                 // Clear intervals directly via refs
                 if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
                 if (thinkingIntervalRef.current) clearInterval(thinkingIntervalRef.current);
@@ -280,6 +283,7 @@ export const ChallengeScreen: React.FC<{ navigation?: any }> = ({ navigation }) 
 
     const expected = PI_DIGITS[currentPos];
     if (digit === expected) {
+      feedbackCorrect();
       const newCorrect = correctCount + 1;
       setCorrectCount(newCorrect);
       setTypedHistory(prev => [...prev, digit]);
@@ -293,12 +297,15 @@ export const ChallengeScreen: React.FC<{ navigation?: any }> = ({ navigation }) 
       }
 
       if (newCorrect >= challengeLength) {
+        feedbackVictory();
         endChallenge(true, newCorrect, lives);
       }
     } else {
+      feedbackWrong();
       const newLives = lives - 1;
       setLives(Math.max(0, newLives));
       if (newLives <= 0) {
+        feedbackGameOver();
         endChallenge(false, correctCount, 0);
       }
     }
