@@ -4,6 +4,7 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
+  Pressable,
   ScrollView,
   TextInput,
   Alert,
@@ -218,7 +219,7 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
             return newStreak;
           });
           saveProgress(clampedPos);
-        }, 200);
+        }, 80);
         timeoutRefs.current.push(t1);
       }
     } else {
@@ -346,7 +347,7 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
     );
   }
 
-  // Number pad
+  // Number pad - uses Pressable+onPressIn for instant response
   const renderNumberPad = () => {
     const rows = numpadReversed
       ? [['1', '2', '3'], ['4', '5', '6'], ['7', '8', '9'], ['', '0', 'x']]
@@ -360,24 +361,23 @@ export const TrainingScreen: React.FC<{ navigation?: any }> = ({ navigation }) =
               if (digit === '') return <View key={colIndex} style={styles.numPadEmpty} />;
               if (digit === 'x') {
                 return (
-                  <TouchableOpacity
+                  <Pressable
                     key={colIndex}
-                    style={[styles.numPadButton, styles.numPadDelete]}
-                    onPress={() => setTypedDigits(prev => prev.slice(0, -1))}
+                    style={({ pressed }) => [styles.numPadButton, styles.numPadDelete, pressed && styles.numPadPressed]}
+                    onPressIn={() => setTypedDigits(prev => prev.slice(0, -1))}
                   >
                     <Text style={styles.numPadDeleteText}>{'<'}</Text>
-                  </TouchableOpacity>
+                  </Pressable>
                 );
               }
               return (
-                <TouchableOpacity
+                <Pressable
                   key={colIndex}
-                  style={styles.numPadButton}
-                  onPress={() => handleDigitPress(digit)}
-                  activeOpacity={0.6}
+                  style={({ pressed }) => [styles.numPadButton, pressed && styles.numPadPressed]}
+                  onPressIn={() => handleDigitPress(digit)}
                 >
                   <Text style={styles.numPadText}>{digit}</Text>
-                </TouchableOpacity>
+                </Pressable>
               );
             })}
           </View>
@@ -984,6 +984,10 @@ const styles = StyleSheet.create({
   numPadEmpty: {
     width: '28%',
     aspectRatio: 1.3,
+  },
+  numPadPressed: {
+    opacity: 0.5,
+    backgroundColor: '#222222',
   },
   numPadDelete: {
     backgroundColor: '#1A1A1A',
