@@ -4,6 +4,7 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
+  Pressable,
   Alert,
   ScrollView,
 } from 'react-native';
@@ -545,14 +546,13 @@ export const ChallengeScreen: React.FC<{ navigation?: any }> = ({ navigation }) 
             {row.map((digit, ci) => {
               if (digit === null) return <View key={ci} style={styles.numPadEmpty} />;
               return (
-                <TouchableOpacity
+                <Pressable
                   key={ci}
-                  style={styles.numPadButton}
-                  onPress={() => handleDigitPress(digit.toString())}
-                  activeOpacity={0.6}
+                  style={({ pressed }) => [styles.numPadButton, pressed && styles.numPadPressed]}
+                  onPressIn={() => handleDigitPress(digit.toString())}
                 >
                   <Text style={styles.numPadText}>{digit}</Text>
-                </TouchableOpacity>
+                </Pressable>
               );
             })}
           </View>
@@ -844,6 +844,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#111111',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  numPadPressed: {
+    opacity: 0.5,
+    backgroundColor: '#222222',
   },
   numPadEmpty: {
     width: '28%',

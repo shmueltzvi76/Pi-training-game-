@@ -77,354 +77,278 @@ export const SettingsScreen: React.FC<{ navigation?: any }> = () => {
     }
   };
 
-  const renderToggle = (
-    icon: string,
-    label: string,
-    description: string,
-    value: boolean,
-    onChange: (v: boolean) => void,
-    isLast = false,
-  ) => (
-    <View style={[styles.toggleItem, !isLast && styles.toggleItemBorder]}>
-      <View style={styles.toggleLeft}>
-        <View style={styles.toggleIconWrap}>
-          <Text style={styles.toggleIcon}>{icon}</Text>
-        </View>
-        <View style={styles.toggleTexts}>
-          <Text style={styles.toggleLabel}>{label}</Text>
-          <Text style={styles.toggleDesc}>{description}</Text>
-        </View>
-      </View>
-      <Switch
-        value={value}
-        onValueChange={onChange}
-        trackColor={{ false: Theme.colors.backgroundInput, true: Theme.colors.primary }}
-        thumbColor={value ? Theme.colors.white : Theme.colors.textSecondary}
-      />
-    </View>
-  );
-
-  const renderChips = (
-    options: { value: any; label: string }[],
-    selected: any,
-    onSelect: (v: any) => void,
-  ) => (
-    <View style={styles.chipRow}>
-      {options.map(opt => (
-        <TouchableOpacity
-          key={opt.value}
-          style={[styles.chip, selected === opt.value && styles.chipActive]}
-          onPress={() => onSelect(opt.value)}
-        >
-          <Text style={[styles.chipText, selected === opt.value && styles.chipTextActive]}>
-            {opt.label}
-          </Text>
-        </TouchableOpacity>
-      ))}
-    </View>
-  );
-
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView style={s.container} contentContainerStyle={s.content}>
       {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerIconWrap}>
-          <Text style={styles.headerIcon}>&#x2699;&#xFE0F;</Text>
-        </View>
-        <Text style={styles.title}>הגדרות</Text>
-        <Text style={styles.subtitle}>התאם את חוויית האימון שלך</Text>
+      <View style={s.header}>
+        <Text style={s.headerPi}>π</Text>
+        <Text style={s.headerTitle}>הגדרות</Text>
       </View>
 
       {/* Display format */}
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionIcon}>&#x1F522;</Text>
-          <Text style={styles.sectionTitle}>פורמט תצוגת ספרות</Text>
+      <Text style={s.label}>תצוגת ספרות</Text>
+      <View style={s.card}>
+        <View style={s.segmentRow}>
+          {([1, 2, 5, 10, 15, 20] as const).map(format => (
+            <TouchableOpacity
+              key={format}
+              style={[s.segment, settings.displayFormat === format && s.segmentOn]}
+              onPress={() => updateSetting('displayFormat', format)}
+            >
+              <Text style={[s.segmentText, settings.displayFormat === format && s.segmentTextOn]}>
+                {format === 1 ? '1' : format === 2 ? '2' : format === 5 ? '5' : format === 10 ? '10' : format === 15 ? '15' : '20'}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
-        <Text style={styles.sectionDesc}>בחר כמה ספרות להציג בכל קבוצה</Text>
-        {renderChips(
-          [
-            { value: 1, label: 'בודד' },
-            { value: 2, label: 'זוגות' },
-            { value: 5, label: 'חמישיות' },
-            { value: 10, label: 'עשיריות' },
-            { value: 15, label: '15' },
-            { value: 20, label: '20' },
-          ],
-          settings.displayFormat,
-          (v) => updateSetting('displayFormat', v),
-        )}
       </View>
 
-      {/* Daily goal */}
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionIcon}>&#x1F3AF;</Text>
-          <Text style={styles.sectionTitle}>יעד יומי</Text>
+      {/* Goals */}
+      <Text style={s.label}>יעדים</Text>
+      <View style={s.card}>
+        <View style={s.row}>
+          <View style={s.segmentRow}>
+            {[5, 10, 20, 50].map(goal => (
+              <TouchableOpacity
+                key={goal}
+                style={[s.segmentSmall, settings.dailyGoal === goal && s.segmentOn]}
+                onPress={() => updateSetting('dailyGoal', goal)}
+              >
+                <Text style={[s.segmentText, settings.dailyGoal === goal && s.segmentTextOn]}>{goal}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <Text style={s.rowLabel}>ספרות ליום</Text>
         </View>
-        <Text style={styles.sectionDesc}>כמה ספרות חדשות ביום</Text>
-        {renderChips(
-          [
-            { value: 5, label: '5' },
-            { value: 10, label: '10' },
-            { value: 20, label: '20' },
-            { value: 50, label: '50' },
-          ],
-          settings.dailyGoal,
-          (v) => updateSetting('dailyGoal', v),
-        )}
+        <View style={s.divider} />
+        <View style={s.row}>
+          <View style={s.segmentRow}>
+            {[3, 5, 7].map(freq => (
+              <TouchableOpacity
+                key={freq}
+                style={[s.segmentSmall, settings.weeklyFrequency === freq && s.segmentOn]}
+                onPress={() => updateSetting('weeklyFrequency', freq)}
+              >
+                <Text style={[s.segmentText, settings.weeklyFrequency === freq && s.segmentTextOn]}>
+                  {freq === 7 ? 'כל יום' : `${freq}`}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <Text style={s.rowLabel}>ימים בשבוע</Text>
+        </View>
       </View>
 
-      {/* Weekly frequency */}
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionIcon}>&#x1F4C5;</Text>
-          <Text style={styles.sectionTitle}>תדירות שבועית</Text>
+      {/* Preferences */}
+      <Text style={s.label}>העדפות</Text>
+      <View style={s.card}>
+        <View style={s.toggleRow}>
+          <Switch
+            value={settings.soundEnabled}
+            onValueChange={(v) => updateSetting('soundEnabled', v)}
+            trackColor={{ false: '#334155', true: Theme.colors.primary }}
+            thumbColor="#fff"
+          />
+          <View style={s.toggleTexts}>
+            <Text style={s.toggleLabel}>צלילים</Text>
+            <Text style={s.toggleSub}>אפקטים קוליים בעת אימון</Text>
+          </View>
         </View>
-        <Text style={styles.sectionDesc}>כמה ימי אימון בשבוע</Text>
-        {renderChips(
-          [
-            { value: 3, label: '3 ימים' },
-            { value: 5, label: '5 ימים' },
-            { value: 7, label: 'כל יום' },
-          ],
-          settings.weeklyFrequency,
-          (v) => updateSetting('weeklyFrequency', v),
-        )}
-      </View>
-
-      {/* Toggles */}
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionIcon}>&#x2699;&#xFE0F;</Text>
-          <Text style={styles.sectionTitle}>כללי</Text>
+        <View style={s.divider} />
+        <View style={s.toggleRow}>
+          <Switch
+            value={settings.hapticEnabled}
+            onValueChange={(v) => updateSetting('hapticEnabled', v)}
+            trackColor={{ false: '#334155', true: Theme.colors.primary }}
+            thumbColor="#fff"
+          />
+          <View style={s.toggleTexts}>
+            <Text style={s.toggleLabel}>רטט</Text>
+            <Text style={s.toggleSub}>משוב הפטי בלחיצה</Text>
+          </View>
         </View>
-        {renderToggle(
-          '\uD83D\uDD0A',
-          'צלילים',
-          'אפקטים קוליים בעת אימון',
-          settings.soundEnabled,
-          (v) => updateSetting('soundEnabled', v),
-        )}
-        {renderToggle(
-          '\uD83D\uDCF3',
-          'רטט',
-          'רטט בעת לחיצה נכונה/שגויה',
-          settings.hapticEnabled,
-          (v) => updateSetting('hapticEnabled', v),
-        )}
-        {renderToggle(
-          '\uD83D\uDD22',
-          'היפוך Numpad',
-          '1-2-3 למעלה במקום 7-8-9',
-          settings.numpadReversed ?? false,
-          (v) => updateSetting('numpadReversed', v),
-          true,
-        )}
+        <View style={s.divider} />
+        <View style={s.toggleRow}>
+          <Switch
+            value={settings.numpadReversed ?? false}
+            onValueChange={(v) => updateSetting('numpadReversed', v)}
+            trackColor={{ false: '#334155', true: Theme.colors.primary }}
+            thumbColor="#fff"
+          />
+          <View style={s.toggleTexts}>
+            <Text style={s.toggleLabel}>היפוך מקלדת</Text>
+            <Text style={s.toggleSub}>1-2-3 למעלה במקום 7-8-9</Text>
+          </View>
+        </View>
       </View>
 
       {/* Info */}
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionIcon}>&#x2139;&#xFE0F;</Text>
-          <Text style={styles.sectionTitle}>מידע</Text>
+      <Text style={s.label}>אודות</Text>
+      <View style={s.card}>
+        <View style={s.infoRow}>
+          <Text style={s.infoVal}>{TOTAL_DIGITS.toLocaleString()}</Text>
+          <Text style={s.infoKey}>ספרות זמינות</Text>
         </View>
-        <View style={styles.infoRow}>
-          <Text style={styles.infoValue}>{TOTAL_DIGITS.toLocaleString()}</Text>
-          <Text style={styles.infoLabel}>ספרות פאי זמינות</Text>
-        </View>
-        <View style={[styles.infoRow, { borderTopWidth: 1, borderTopColor: Theme.colors.border }]}>
-          <Text style={styles.infoValue}>1.0.0</Text>
-          <Text style={styles.infoLabel}>גרסה</Text>
+        <View style={s.divider} />
+        <View style={s.infoRow}>
+          <Text style={s.infoVal}>1.0.0</Text>
+          <Text style={s.infoKey}>גרסה</Text>
         </View>
       </View>
 
-      {/* Clear data */}
-      <TouchableOpacity style={styles.dangerButton} onPress={confirmClearData}>
-        <Text style={styles.dangerIcon}>&#x1F5D1;&#xFE0F;</Text>
-        <Text style={styles.dangerText}>מחק את כל הנתונים</Text>
+      {/* Danger zone */}
+      <TouchableOpacity style={s.danger} onPress={confirmClearData} activeOpacity={0.7}>
+        <Text style={s.dangerText}>מחק את כל הנתונים</Text>
       </TouchableOpacity>
-
-      <Text style={styles.dangerHint}>פעולה זו אינה ניתנת לביטול</Text>
     </ScrollView>
   );
 };
 
-const styles = StyleSheet.create({
+const s = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Theme.colors.background,
   },
   content: {
-    padding: 20,
+    paddingHorizontal: 20,
     paddingBottom: 200,
   },
   // Header
   header: {
     alignItems: 'center',
-    marginBottom: 28,
+    paddingTop: 16,
+    paddingBottom: 24,
   },
-  headerIconWrap: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: Theme.colors.primary + '20',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-  },
-  headerIcon: {
-    fontSize: 32,
-  },
-  title: {
-    fontSize: 26,
-    color: Theme.colors.text,
-    fontWeight: Theme.fontWeight.extrabold,
+  headerPi: {
+    fontSize: 48,
+    color: Theme.colors.primary,
+    fontWeight: '700',
     marginBottom: 4,
   },
-  subtitle: {
-    fontSize: Theme.fontSize.sm,
-    color: Theme.colors.textSecondary,
-  },
-  // Section
-  section: {
-    backgroundColor: Theme.colors.surface,
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 16,
-    ...Theme.shadow.sm,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: 4,
-  },
-  sectionIcon: {
-    fontSize: 20,
-  },
-  sectionTitle: {
-    fontSize: Theme.fontSize.lg,
+  headerTitle: {
+    fontSize: 22,
     color: Theme.colors.text,
     fontWeight: Theme.fontWeight.bold,
   },
-  sectionDesc: {
-    fontSize: Theme.fontSize.xs,
+  // Section label
+  label: {
+    fontSize: 13,
     color: Theme.colors.textMuted,
-    marginBottom: 14,
+    fontWeight: Theme.fontWeight.semibold,
+    textTransform: 'uppercase' as any,
+    letterSpacing: 1,
+    marginBottom: 8,
+    marginTop: 20,
+    paddingHorizontal: 4,
     textAlign: 'right',
-    paddingRight: 30,
   },
-  // Chips
-  chipRow: {
+  // Card
+  card: {
+    backgroundColor: Theme.colors.surface,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 4,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: Theme.colors.border,
+  },
+  // Segment control
+  segmentRow: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 6,
     flexWrap: 'wrap',
-    justifyContent: 'center',
+    paddingVertical: 12,
   },
-  chip: {
-    paddingVertical: 10,
-    paddingHorizontal: 18,
-    borderRadius: 24,
+  segment: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 10,
     backgroundColor: Theme.colors.backgroundInput,
-    minWidth: 65,
+    minWidth: 44,
     alignItems: 'center',
   },
-  chipActive: {
-    backgroundColor: Theme.colors.primary,
-    ...Theme.shadow.md,
+  segmentSmall: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: Theme.colors.backgroundInput,
+    minWidth: 38,
+    alignItems: 'center',
   },
-  chipText: {
+  segmentOn: {
+    backgroundColor: Theme.colors.primary,
+  },
+  segmentText: {
     color: Theme.colors.textSecondary,
-    fontSize: Theme.fontSize.sm,
+    fontSize: 14,
     fontWeight: Theme.fontWeight.medium,
   },
-  chipTextActive: {
-    color: Theme.colors.white,
+  segmentTextOn: {
+    color: '#fff',
     fontWeight: Theme.fontWeight.bold,
   },
-  // Toggles
-  toggleItem: {
+  // Row with label
+  row: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 14,
+    paddingVertical: 4,
   },
-  toggleItemBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: Theme.colors.border,
+  rowLabel: {
+    color: Theme.colors.text,
+    fontSize: 15,
+    fontWeight: Theme.fontWeight.medium,
   },
-  toggleLeft: {
+  // Toggle
+  toggleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    flex: 1,
-  },
-  toggleIconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: Theme.colors.backgroundInput,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  toggleIcon: {
-    fontSize: 20,
+    paddingVertical: 12,
+    gap: 14,
   },
   toggleTexts: {
     flex: 1,
   },
   toggleLabel: {
     color: Theme.colors.text,
-    fontSize: Theme.fontSize.base,
+    fontSize: 16,
     fontWeight: Theme.fontWeight.semibold,
+    textAlign: 'right',
   },
-  toggleDesc: {
+  toggleSub: {
     color: Theme.colors.textMuted,
-    fontSize: Theme.fontSize.xs,
+    fontSize: 12,
     marginTop: 2,
+    textAlign: 'right',
   },
   // Info
   infoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 14,
   },
-  infoLabel: {
+  infoKey: {
+    color: Theme.colors.text,
+    fontSize: 15,
+  },
+  infoVal: {
     color: Theme.colors.textSecondary,
-    fontSize: Theme.fontSize.sm,
-  },
-  infoValue: {
-    color: Theme.colors.accent,
-    fontSize: Theme.fontSize.base,
-    fontWeight: Theme.fontWeight.bold,
+    fontSize: 15,
   },
   // Danger
-  dangerButton: {
-    flexDirection: 'row',
-    backgroundColor: Theme.colors.error + '15',
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: Theme.colors.error + '40',
-    padding: 16,
+  danger: {
+    marginTop: 32,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Theme.colors.error + '50',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    marginTop: 8,
-  },
-  dangerIcon: {
-    fontSize: 20,
   },
   dangerText: {
     color: Theme.colors.error,
-    fontSize: Theme.fontSize.base,
-    fontWeight: Theme.fontWeight.bold,
-  },
-  dangerHint: {
-    color: Theme.colors.textMuted,
-    fontSize: Theme.fontSize.xs,
-    textAlign: 'center',
-    marginTop: 8,
+    fontSize: 15,
+    fontWeight: Theme.fontWeight.semibold,
   },
 });
