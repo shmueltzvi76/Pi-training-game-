@@ -248,6 +248,8 @@ const s = StyleSheet.create({
     borderRadius: 16,
     paddingHorizontal: 16,
     paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: Theme.colors.border,
   },
   divider: {
     height: 1,
@@ -257,15 +259,13 @@ const s = StyleSheet.create({
   segmentRow: {
     flexDirection: 'row',
     gap: 6,
-    flexWrap: 'wrap',
     paddingVertical: 12,
   },
   segment: {
+    flex: 1,
     paddingVertical: 8,
-    paddingHorizontal: 16,
     borderRadius: 10,
     backgroundColor: Theme.colors.backgroundInput,
-    minWidth: 44,
     alignItems: 'center',
   },
   segmentSmall: {
@@ -342,8 +342,9 @@ const s = StyleSheet.create({
     marginTop: 32,
     paddingVertical: 14,
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: Theme.colors.error + '50',
+    borderWidth: 2,
+    borderColor: Theme.colors.error,
+    backgroundColor: Theme.colors.error + '12',
     alignItems: 'center',
   },
   dangerText: {
