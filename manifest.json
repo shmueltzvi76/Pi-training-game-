@@ -1,0 +1,12 @@
+{
+  "name": "Pi Training Game",
+  "short_name": "Pi Game",
+  "description": "אמן את הזיכרון שלך עם ספרות פאי",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0a0a1a",
+  "theme_color": "#0a0a1a",
+  "orientation": "portrait",
+  "lang": "he",
+  "dir": "rtl"
+}
