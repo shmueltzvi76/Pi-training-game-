@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pi-game-v1';
+const CACHE_NAME = 'pi-game-v2';
 const ASSETS = [
   './',
   './index.html',

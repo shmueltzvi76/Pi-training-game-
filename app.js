@@ -20,7 +20,7 @@ let gameState = {
 
 let viewerState = {
   page: 0,
-  digitsPerPage: 100,
+  digitsPerPage: 200,
   format: 1,
   zoom: 1,
   searchHighlights: [],
@@ -417,13 +417,12 @@ function renderViewer() {
   const end = Math.min(start + perPage, TOTAL_DIGITS);
   const fmt = viewerState.format;
 
-  // Font size based on zoom
-  const sizes = [14, 16, 18, 22, 28];
+  const sizes = [16, 18, 22, 28, 34];
   const sizeIdx = Math.max(0, Math.min(sizes.length - 1, viewerState.zoom));
   grid.style.fontSize = sizes[sizeIdx] + 'px';
 
   let html = '';
-  let lineDigits = fmt === 1 ? 20 : fmt === 2 ? 20 : fmt === 5 ? 20 : 20;
+  let lineDigits = sizeIdx >= 3 ? 10 : (fmt >= 10 ? 10 : 20);
 
   for (let i = start; i < end; i++) {
     // Row marker at start of each line
