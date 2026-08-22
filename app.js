@@ -91,7 +91,9 @@ function updateHomeScreen() {
   }
   document.getElementById('home-mastered').textContent = stats.bestStreak;
   document.getElementById('home-streak').textContent = stats.dayStreak;
-  document.getElementById('home-best').textContent = stats.bestStreak;
+  const totalAnswers = stats.totalCorrect + stats.totalIncorrect;
+  const accuracy = totalAnswers > 0 ? Math.round((stats.totalCorrect / totalAnswers) * 100) : 0;
+  document.getElementById('home-best').textContent = accuracy + '%';
 
   const goalPct = Math.min(100, (stats.todayDigits / settings.dailyGoal) * 100);
   document.getElementById('goal-fill').style.width = goalPct + '%';
@@ -108,20 +110,20 @@ function adjustSetting(inputId, delta) {
 }
 
 function setHint(btn, count) {
-  btn.closest('.toggle-group').querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
+  btn.closest('.chip-row').querySelectorAll('.chip').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
   gameState.hintCount = count;
 }
 
 function setLives(btn, count) {
-  btn.closest('.toggle-group').querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
+  btn.closest('.chip-row').querySelectorAll('.chip').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
   gameState.maxLives = count;
 }
 
 function setTime(btn, seconds) {
-  btn.closest('.toggle-group').querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
+  btn.closest('.chip-row').querySelectorAll('.chip').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
   gameState.timeLimit = seconds;
 }
 
@@ -196,7 +198,7 @@ function updateGameUI() {
   document.getElementById('correct-count').textContent = gameState.correct;
   document.getElementById('incorrect-count').textContent = gameState.incorrect;
   document.getElementById('current-input').textContent = '?';
-  document.getElementById('current-input').className = 'current-input';
+  document.getElementById('current-input').className = 'input-box';
 
   // Update trail
   const trailEl = document.getElementById('digits-trail');
@@ -253,9 +255,9 @@ function pressDigit(digit) {
     // Correct
     gameState.correct++;
     gameState.trail.push({ digit: digit, correct: true });
-    inputEl.className = 'current-input correct';
+    inputEl.className = 'input-box correct';
     feedbackEl.textContent = 'נכון!';
-    feedbackEl.className = 'game-feedback correct';
+    feedbackEl.className = 'feedback correct';
 
     if (settings.vibrate && navigator.vibrate) navigator.vibrate(30);
 
@@ -271,9 +273,9 @@ function pressDigit(digit) {
     // Incorrect
     gameState.incorrect++;
     gameState.trail.push({ digit: digit, correct: false });
-    inputEl.className = 'current-input incorrect';
+    inputEl.className = 'input-box incorrect';
     feedbackEl.textContent = 'שגוי! הספרה הנכונה: ' + expected;
-    feedbackEl.className = 'game-feedback incorrect';
+    feedbackEl.className = 'feedback incorrect';
 
     if (settings.vibrate && navigator.vibrate) navigator.vibrate([50, 50, 50]);
 
@@ -304,7 +306,7 @@ function pressDigit(digit) {
 function startTimer() {
   gameState.timerValue = gameState.timeLimit;
   document.getElementById('timer-value').textContent = gameState.timerValue;
-  document.getElementById('timer-display').className = 'timer-display';
+  document.getElementById('timer-display').className = 'timer';
 
   if (gameState.timer) clearInterval(gameState.timer);
   gameState.timer = setInterval(() => {
@@ -312,9 +314,9 @@ function startTimer() {
     document.getElementById('timer-value').textContent = gameState.timerValue;
 
     if (gameState.timerValue <= 3) {
-      document.getElementById('timer-display').className = 'timer-display danger';
+      document.getElementById('timer-display').className = 'timer danger';
     } else if (gameState.timerValue <= 5) {
-      document.getElementById('timer-display').className = 'timer-display warning';
+      document.getElementById('timer-display').className = 'timer warning';
     }
 
     if (gameState.timerValue <= 0) {
@@ -325,7 +327,7 @@ function startTimer() {
 
       const feedbackEl = document.getElementById('game-feedback');
       feedbackEl.textContent = 'אזל הזמן! הספרה: ' + expected;
-      feedbackEl.className = 'game-feedback incorrect';
+      feedbackEl.className = 'feedback incorrect';
 
       if (gameState.maxLives > 0) {
         gameState.lives--;
@@ -349,7 +351,7 @@ function startTimer() {
 function resetTimer() {
   gameState.timerValue = gameState.timeLimit;
   document.getElementById('timer-value').textContent = gameState.timerValue;
-  document.getElementById('timer-display').className = 'timer-display';
+  document.getElementById('timer-display').className = 'timer';
 }
 
 function endGame() {
@@ -453,8 +455,8 @@ function renderViewer() {
   const totalPages = Math.ceil(TOTAL_DIGITS / perPage);
   document.getElementById('viewer-page-info').textContent =
     `עמוד ${viewerState.page + 1} / ${totalPages}`;
-  document.getElementById('viewer-range-start').textContent = start + 1;
-  document.getElementById('viewer-range-end').textContent = end;
+  document.getElementById('viewer-range').textContent =
+    `ספרות ${start + 1} – ${end} מתוך ${TOTAL_DIGITS.toLocaleString()}`;
   document.getElementById('zoom-level').textContent = 'x' + (viewerState.zoom + 1);
 }
 
@@ -470,8 +472,8 @@ function viewerZoom(delta) {
 }
 
 function setFormat(btn, fmt) {
-  document.querySelectorAll('.fmt-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
+  document.querySelectorAll('.fc').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
   viewerState.format = fmt;
   renderViewer();
 }
@@ -680,7 +682,6 @@ function loadSettingsUI() {
   document.getElementById('setting-daily-goal').value = settings.dailyGoal;
   document.getElementById('setting-vibrate').checked = settings.vibrate;
   document.getElementById('setting-sound').checked = settings.sound;
-  document.getElementById('setting-theme').value = settings.theme;
 }
 
 // ---- KEYBOARD SUPPORT ----
