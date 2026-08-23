@@ -57,7 +57,7 @@
     <!-- ===== TRAINING SETUP ===== -->
     <div id="screen-training-setup" class="screen">
       <div class="topbar">
-        <button class="tb-back" onclick="showScreen('home')">&#8592;</button>
+        <button class="tb-back" onclick="showScreen('home')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg></button>
         <h2>מצב אימון</h2>
         <div class="tb-spacer"></div>
       </div>
@@ -89,7 +89,7 @@
     <!-- ===== CHALLENGE SETUP ===== -->
     <div id="screen-challenge-setup" class="screen">
       <div class="topbar">
-        <button class="tb-back" onclick="showScreen('home')">&#8592;</button>
+        <button class="tb-back" onclick="showScreen('home')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg></button>
         <h2>מצב אתגר</h2>
         <div class="tb-spacer"></div>
       </div>
@@ -130,7 +130,7 @@
     <!-- ===== GAME ===== -->
     <div id="screen-game" class="screen">
       <div class="topbar game-bar">
-        <button class="tb-back" onclick="endGame()">&#8592;</button>
+        <button class="tb-back" onclick="endGame()"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg></button>
         <div class="game-info">
           <span class="gi-mode" id="game-mode-label">אימון</span>
           <span class="gi-pos" id="game-position">#1</span>
@@ -188,7 +188,7 @@
     <!-- ===== VIEWER ===== -->
     <div id="screen-viewer" class="screen">
       <div class="topbar">
-        <button class="tb-back" onclick="showScreen('home')">&#8592;</button>
+        <button class="tb-back" onclick="showScreen('home')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg></button>
         <h2>&#960; ספרות פאי</h2>
         <button class="tb-icon" onclick="toggleSearch()">&#128269;</button>
       </div>
@@ -237,7 +237,7 @@
     <!-- ===== STATISTICS ===== -->
     <div id="screen-statistics" class="screen">
       <div class="topbar">
-        <button class="tb-back" onclick="showScreen('home')">&#8592;</button>
+        <button class="tb-back" onclick="showScreen('home')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg></button>
         <h2>סטטיסטיקות</h2>
         <div class="tb-spacer"></div>
       </div>
@@ -259,19 +259,71 @@
     <!-- ===== SETTINGS ===== -->
     <div id="screen-settings" class="screen">
       <div class="topbar">
-        <button class="tb-back" onclick="showScreen('home')">&#8592;</button>
+        <button class="tb-close" onclick="showScreen('home')">&#10005;</button>
         <h2>הגדרות</h2>
         <div class="tb-spacer"></div>
       </div>
       <div class="set-body">
-        <div class="set-row"><span>יעד יומי</span><input type="number" id="setting-daily-goal" value="10" min="1" max="100" onchange="saveSetting('dailyGoal',this.value)"></div>
-        <div class="set-row"><span>רטט</span><label class="sw"><input type="checkbox" id="setting-vibrate" checked onchange="saveSetting('vibrate',this.checked)"><i></i></label></div>
-        <div class="set-row"><span>צלילים</span><label class="sw"><input type="checkbox" id="setting-sound" checked onchange="saveSetting('sound',this.checked)"><i></i></label></div>
-        <div class="set-footer">
-          <div class="sf-pi">&#960;</div>
-          <p>Pi Training Game</p>
-          <p class="sf-sub">10,000 ספרות מאומתות</p>
+
+        <div class="set-section-title">יעד יומי</div>
+        <div class="set-card">
+          <div class="set-card-row">
+            <div class="set-card-info">
+              <strong>ספרות ליום</strong>
+              <small>מספר הספרות שתרצה לתרגל כל יום</small>
+            </div>
+            <input type="number" id="setting-daily-goal" class="set-num" value="10" min="1" max="100" onchange="saveSetting('dailyGoal',this.value)">
+          </div>
         </div>
+
+        <div class="set-section-title">העדפות</div>
+        <div class="set-card">
+          <div class="set-card-row">
+            <div class="set-card-info">
+              <strong>רטט</strong>
+              <small>משוב רטט בעת לחיצה על ספרה</small>
+            </div>
+            <label class="sw"><input type="checkbox" id="setting-vibrate" checked onchange="saveSetting('vibrate',this.checked)"><i></i></label>
+          </div>
+        </div>
+        <div class="set-card">
+          <div class="set-card-row">
+            <div class="set-card-info">
+              <strong>צלילים</strong>
+              <small>אפקטי קול בעת תשובה נכונה או שגויה</small>
+            </div>
+            <label class="sw"><input type="checkbox" id="setting-sound" checked onchange="saveSetting('sound',this.checked)"><i></i></label>
+          </div>
+        </div>
+
+        <div class="set-section-title">גיבוי ושחזור</div>
+        <p class="set-section-desc">שמור עותק של כל הנתונים שלך, כדי שלעולם לא תאבד אותם.</p>
+        <div class="set-actions">
+          <button class="set-action-btn" onclick="exportData()">&#128229; ייצוא נתונים</button>
+          <button class="set-action-btn" onclick="importData()">&#128228; ייבוא נתונים</button>
+        </div>
+        <button class="set-danger-btn" onclick="clearStats()">&#128465; מחיקת כל הנתונים</button>
+
+        <div class="set-section-title">אודות</div>
+        <div class="dev-card">
+          <div class="dev-icon">&#960;</div>
+          <div class="dev-info">
+            <strong>Pi Training Game</strong>
+            <small>10,000 ספרות פאי מאומתות</small>
+          </div>
+        </div>
+        <div class="dev-card">
+          <div class="dev-icon dev-code">&lt;/&gt;</div>
+          <div class="dev-info">
+            <strong>שמואל צבי כהן</strong>
+            <small>אדריכל קוד &middot; מלמד תכנות ובונה מערכות, אפליקציות ואתרים</small>
+          </div>
+        </div>
+        <div class="dev-contact">
+          <a href="tel:053-931-1073" class="dev-link">&#128222; 053-931-1073</a>
+          <a href="mailto:shmueltzvi76@gmail.com" class="dev-link">&#9993; shmueltzvi76@gmail.com</a>
+        </div>
+
       </div>
     </div>
 

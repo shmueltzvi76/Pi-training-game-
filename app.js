@@ -683,6 +683,57 @@ function loadSettingsUI() {
   document.getElementById('setting-sound').checked = settings.sound;
 }
 
+function exportData() {
+  const data = {
+    version: 1,
+    exportDate: new Date().toISOString(),
+    stats: { ...stats },
+    settings: { ...settings },
+    bestScore: localStorage.getItem('pi-best') || '0',
+  };
+  const json = JSON.stringify(data, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `pi-game-backup-${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function importData() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        if (!data.version || !data.stats || !data.settings) {
+          alert('קובץ גיבוי לא תקין');
+          return;
+        }
+        Object.assign(stats, data.stats);
+        Object.assign(settings, data.settings);
+        if (data.bestScore) localStorage.setItem('pi-best', data.bestScore);
+        saveData();
+        loadSettingsUI();
+        updateHomeScreen();
+        alert('הנתונים שוחזרו בהצלחה!');
+      } catch {
+        alert('שגיאה בקריאת הקובץ');
+      }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
 // ---- KEYBOARD SUPPORT ----
 document.addEventListener('keydown', (e) => {
   if (!gameState.isActive) return;
