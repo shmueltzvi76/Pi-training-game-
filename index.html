@@ -42,10 +42,10 @@
             <div class="ac-text"><strong>אתגר</strong><small>בדוק את עצמך</small></div>
           </button>
         </div>
+        <button class="home-settings" onclick="showScreen('settings')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
         <div class="home-nav">
           <button class="nav-pill" onclick="showScreen('viewer')"><span>&#128220;</span> ספרות</button>
           <button class="nav-pill" onclick="showScreen('statistics')"><span>&#128200;</span> סטטיסטיקה</button>
-          <button class="nav-pill" onclick="showScreen('settings')"><span>&#9881;</span> הגדרות</button>
         </div>
         <div class="goal-strip">
           <div class="goal-bar-bg"><div class="goal-bar-fill" id="goal-fill"></div></div>
@@ -57,7 +57,7 @@
     <!-- ===== TRAINING SETUP ===== -->
     <div id="screen-training-setup" class="screen">
       <div class="topbar">
-        <button class="tb-back" onclick="showScreen('home')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg></button>
+        <button class="tb-back" onclick="showScreen('home')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12H19"/><path d="M12 19l7-7-7-7"/></svg></button>
         <h2>מצב אימון</h2>
         <div class="tb-spacer"></div>
       </div>
@@ -89,7 +89,7 @@
     <!-- ===== CHALLENGE SETUP ===== -->
     <div id="screen-challenge-setup" class="screen">
       <div class="topbar">
-        <button class="tb-back" onclick="showScreen('home')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg></button>
+        <button class="tb-back" onclick="showScreen('home')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12H19"/><path d="M12 19l7-7-7-7"/></svg></button>
         <h2>מצב אתגר</h2>
         <div class="tb-spacer"></div>
       </div>
@@ -130,7 +130,7 @@
     <!-- ===== GAME ===== -->
     <div id="screen-game" class="screen">
       <div class="topbar game-bar">
-        <button class="tb-back" onclick="endGame()"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg></button>
+        <button class="tb-back" onclick="endGame()"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12H19"/><path d="M12 19l7-7-7-7"/></svg></button>
         <div class="game-info">
           <span class="gi-mode" id="game-mode-label">אימון</span>
           <span class="gi-pos" id="game-position">#1</span>
@@ -188,7 +188,7 @@
     <!-- ===== VIEWER ===== -->
     <div id="screen-viewer" class="screen">
       <div class="topbar">
-        <button class="tb-back" onclick="showScreen('home')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg></button>
+        <button class="tb-back" onclick="showScreen('home')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12H19"/><path d="M12 19l7-7-7-7"/></svg></button>
         <h2>&#960; ספרות פאי</h2>
         <button class="tb-icon" onclick="toggleSearch()">&#128269;</button>
       </div>
@@ -237,22 +237,37 @@
     <!-- ===== STATISTICS ===== -->
     <div id="screen-statistics" class="screen">
       <div class="topbar">
-        <button class="tb-back" onclick="showScreen('home')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg></button>
+        <button class="tb-back" onclick="showScreen('home')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12H19"/><path d="M12 19l7-7-7-7"/></svg></button>
         <h2>סטטיסטיקות</h2>
         <div class="tb-spacer"></div>
       </div>
       <div class="stat-body">
         <div class="stat-grid">
-          <div class="sg-card"><div class="sg-val" id="stat-total-correct">0</div><div class="sg-lbl">נכונות</div></div>
-          <div class="sg-card"><div class="sg-val" id="stat-accuracy">0%</div><div class="sg-lbl">דיוק</div></div>
           <div class="sg-card"><div class="sg-val" id="stat-best-streak">0</div><div class="sg-lbl">שיא רצף</div></div>
           <div class="sg-card"><div class="sg-val" id="stat-sessions">0</div><div class="sg-lbl">משחקים</div></div>
         </div>
-        <h3 class="hist-title">היסטוריה</h3>
-        <div id="history-list" class="hist-list">
-          <p class="empty">אין עדיין משחקים</p>
+
+        <div class="chart-section">
+          <div class="chart-header">
+            <span class="chart-title">מגמת למידה</span>
+            <select id="chart-period" class="chart-select" onchange="renderChart()">
+              <option value="session">אימונים</option>
+              <option value="day">יום</option>
+              <option value="week">שבוע</option>
+              <option value="month" selected>חודש</option>
+            </select>
+          </div>
+          <canvas id="trend-chart" class="trend-chart"></canvas>
+          <div id="chart-empty" class="chart-empty">אין עדיין נתונים להצגה</div>
         </div>
-        <button class="link-btn" onclick="clearStats()">&#128465; נקה היסטוריה</button>
+
+        <div class="hist-section">
+          <div class="hist-header">
+            <h3 class="hist-title">היסטוריה</h3>
+            <button class="hist-clear" onclick="clearStats()">נקה הכל</button>
+          </div>
+          <div id="history-list" class="hist-list"></div>
+        </div>
       </div>
     </div>
 
@@ -324,6 +339,19 @@
           <a href="mailto:shmueltzvi76@gmail.com" class="dev-link">&#9993; shmueltzvi76@gmail.com</a>
         </div>
 
+      </div>
+    </div>
+
+    <!-- ===== CONFIRMATION MODAL ===== -->
+    <div id="confirm-modal" class="modal-overlay hidden">
+      <div class="modal-card">
+        <div class="modal-icon">&#128465;</div>
+        <h3 id="confirm-title"></h3>
+        <p id="confirm-text"></p>
+        <div class="modal-btns">
+          <button class="modal-btn modal-cancel" id="confirm-cancel">ביטול</button>
+          <button class="modal-btn modal-danger" id="confirm-ok">מחק</button>
+        </div>
       </div>
     </div>
 
