@@ -251,10 +251,11 @@
           <div class="chart-header">
             <span class="chart-title">מגמת למידה</span>
             <select id="chart-period" class="chart-select" onchange="renderChart()">
-              <option value="session">אימונים</option>
               <option value="day">יום</option>
               <option value="week">שבוע</option>
               <option value="month" selected>חודש</option>
+              <option value="quarter">רבעון</option>
+              <option value="year">שנה</option>
             </select>
           </div>
           <canvas id="trend-chart" class="trend-chart"></canvas>
@@ -264,7 +265,7 @@
         <div class="hist-section">
           <div class="hist-header">
             <h3 class="hist-title">היסטוריה</h3>
-            <button class="hist-clear" onclick="clearStats()">נקה הכל</button>
+            <button class="hist-clear" onclick="clearStats()" title="נקה הכל"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg></button>
           </div>
           <div id="history-list" class="hist-list"></div>
         </div>

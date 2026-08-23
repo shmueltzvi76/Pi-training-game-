@@ -820,11 +820,18 @@ function aggregateByPeriod(sessions, period) {
       ws.setDate(d.getDate() - d.getDay());
       key = ws.toISOString().slice(0, 10);
       label = ws.toLocaleDateString('he-IL', { day: 'numeric', month: 'short' });
-    } else {
+    } else if (period === 'month') {
       key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
       const opts = { month: 'short' };
       if (d.getFullYear() !== new Date().getFullYear()) opts.year = 'numeric';
       label = d.toLocaleDateString('he-IL', opts);
+    } else if (period === 'quarter') {
+      const q = Math.floor(d.getMonth() / 3) + 1;
+      key = d.getFullYear() + '-Q' + q;
+      label = 'Q' + q + ' ' + d.getFullYear();
+    } else if (period === 'year') {
+      key = String(d.getFullYear());
+      label = String(d.getFullYear());
     }
     if (!groups.has(key)) groups.set(key, { sum: 0, count: 0, label });
     const g = groups.get(key);
