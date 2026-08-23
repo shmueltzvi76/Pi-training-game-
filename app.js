@@ -626,42 +626,51 @@ function searchSequences() {
 
 // ---- STATISTICS ----
 function renderStatistics() {
-  const totalGames = stats.sessions.length;
-  const totalAnswers = stats.totalCorrect + stats.totalIncorrect;
-  const accuracy = totalAnswers > 0
-    ? Math.round((stats.totalCorrect / totalAnswers) * 100) : 0;
-
-  document.getElementById('stat-total-correct').textContent = stats.totalCorrect;
-  document.getElementById('stat-accuracy').textContent = accuracy + '%';
   document.getElementById('stat-best-streak').textContent = stats.bestStreak;
-  document.getElementById('stat-sessions').textContent = totalGames;
+  document.getElementById('stat-sessions').textContent = stats.sessions.length;
+  renderChart();
+  renderHistory();
+}
 
+function renderHistory() {
   const listEl = document.getElementById('history-list');
   if (stats.sessions.length === 0) {
-    listEl.innerHTML = '<p class="empty-state">אין עדיין משחקים. התחל לשחק!</p>';
+    listEl.innerHTML = '<div class="empty-state">אין עדיין משחקים. התחל לשחק!</div>';
     return;
   }
-
   let html = '';
   stats.sessions.slice(0, 30).forEach(s => {
     const date = new Date(s.date);
     const dateStr = date.toLocaleDateString('he-IL');
     const modeClass = s.mode === 'training' ? 'training' : 'challenge';
     const modeLabel = s.mode === 'training' ? 'אימון' : 'אתגר';
-
     html += `<div class="history-item">
-      <div>
-        <div class="history-mode ${modeClass}">${modeLabel}</div>
-        <div class="history-detail">${dateStr} | ספרות ${s.startDigit}-${s.reachedDigit}</div>
+      <div class="hi-main">
+        <span class="hi-badge ${modeClass}">${modeLabel}</span>
+        <div class="hi-detail">${dateStr} · ספרות ${s.startDigit}–${s.reachedDigit}</div>
       </div>
-      <div class="history-score">${s.correct}/${s.correct + s.incorrect} (${s.accuracy}%)</div>
+      <div class="hi-end">
+        <span class="hi-score">${s.correct}/${s.correct + s.incorrect}</span>
+        <button class="hi-delete" onclick="deleteSession(${s.id})"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button>
+      </div>
     </div>`;
   });
   listEl.innerHTML = html;
 }
 
+function deleteSession(sessionId) {
+  showConfirm('מחיקת אימון', 'האם למחוק את האימון הזה?', () => {
+    stats.sessions = stats.sessions.filter(s => s.id !== sessionId);
+    stats.totalCorrect = stats.sessions.reduce((sum, s) => sum + s.correct, 0);
+    stats.totalIncorrect = stats.sessions.reduce((sum, s) => sum + s.incorrect, 0);
+    stats.bestStreak = stats.sessions.reduce((max, s) => Math.max(max, s.correct), 0);
+    saveData();
+    renderStatistics();
+  });
+}
+
 function clearStats() {
-  if (confirm('האם למחוק את כל ההיסטוריה?')) {
+  showConfirm('מחיקת כל הנתונים', 'כל הנתונים יימחקו לצמיתות. להמשיך?', () => {
     stats = {
       sessions: [],
       totalCorrect: 0,
@@ -673,7 +682,167 @@ function clearStats() {
     };
     saveData();
     renderStatistics();
+    updateHomeScreen();
+  });
+}
+
+function showConfirm(title, text, onConfirm) {
+  const modal = document.getElementById('confirm-modal');
+  document.getElementById('confirm-title').textContent = title;
+  document.getElementById('confirm-text').textContent = text;
+  modal.classList.remove('hidden');
+  document.getElementById('confirm-cancel').onclick = () => modal.classList.add('hidden');
+  document.getElementById('confirm-ok').onclick = () => {
+    modal.classList.add('hidden');
+    onConfirm();
+  };
+}
+
+// ---- CHART ----
+function renderChart() {
+  const canvas = document.getElementById('trend-chart');
+  const emptyEl = document.getElementById('chart-empty');
+  const period = document.getElementById('chart-period').value;
+
+  if (stats.sessions.length === 0) {
+    canvas.style.display = 'none';
+    emptyEl.style.display = 'block';
+    return;
   }
+
+  const dataPoints = aggregateByPeriod(stats.sessions, period);
+  if (dataPoints.length === 0) {
+    canvas.style.display = 'none';
+    emptyEl.style.display = 'block';
+    return;
+  }
+
+  canvas.style.display = 'block';
+  emptyEl.style.display = 'none';
+
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.scale(dpr, dpr);
+
+  const w = rect.width;
+  const h = rect.height;
+  const pad = { top: 16, right: 12, bottom: 30, left: 36 };
+  const cw = w - pad.left - pad.right;
+  const ch = h - pad.top - pad.bottom;
+
+  ctx.clearRect(0, 0, w, h);
+
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.lineWidth = 1;
+  ctx.font = '10px Rubik, sans-serif';
+  ctx.fillStyle = 'rgba(255,255,255,0.25)';
+  ctx.textAlign = 'right';
+
+  for (let pct = 0; pct <= 100; pct += 20) {
+    const y = pad.top + ch - (pct / 100) * ch;
+    ctx.beginPath();
+    ctx.moveTo(pad.left, y);
+    ctx.lineTo(w - pad.right, y);
+    ctx.stroke();
+    ctx.fillText(pct + '%', pad.left - 6, y + 3);
+  }
+
+  const pts = dataPoints.map((dp, i) => ({
+    x: pad.left + (dataPoints.length === 1 ? cw / 2 : (i / (dataPoints.length - 1)) * cw),
+    y: pad.top + ch - (dp.value / 100) * ch,
+    label: dp.label,
+  }));
+
+  const grad = ctx.createLinearGradient(0, pad.top, 0, pad.top + ch);
+  grad.addColorStop(0, 'rgba(16,185,129,0.18)');
+  grad.addColorStop(1, 'rgba(16,185,129,0)');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, pad.top + ch);
+  pts.forEach(p => ctx.lineTo(p.x, p.y));
+  ctx.lineTo(pts[pts.length - 1].x, pad.top + ch);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.strokeStyle = '#10b981';
+  ctx.lineWidth = 2.5;
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  pts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+  ctx.stroke();
+
+  pts.forEach(p => {
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+    ctx.fillStyle = '#10b981';
+    ctx.fill();
+    ctx.strokeStyle = '#0c0c1d';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  });
+
+  ctx.fillStyle = 'rgba(255,255,255,0.25)';
+  ctx.textAlign = 'center';
+  ctx.font = '9px Rubik, sans-serif';
+  const step = Math.max(1, Math.ceil(pts.length / 7));
+  pts.forEach((p, i) => {
+    if (i % step === 0 || i === pts.length - 1) {
+      ctx.fillText(p.label, p.x, h - pad.bottom + 14);
+    }
+  });
+}
+
+function aggregateByPeriod(sessions, period) {
+  if (!sessions.length) return [];
+  const sorted = [...sessions].sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  if (period === 'session') {
+    const last20 = sorted.slice(-20);
+    return last20.map((s, i) => ({
+      value: s.accuracy,
+      label: '#' + (sorted.length - last20.length + i + 1),
+    }));
+  }
+
+  const groups = new Map();
+  sorted.forEach(s => {
+    const d = new Date(s.date);
+    let key, label;
+    if (period === 'day') {
+      key = d.toISOString().slice(0, 10);
+      label = d.toLocaleDateString('he-IL', { day: 'numeric', month: 'short' });
+    } else if (period === 'week') {
+      const ws = new Date(d);
+      ws.setDate(d.getDate() - d.getDay());
+      key = ws.toISOString().slice(0, 10);
+      label = ws.toLocaleDateString('he-IL', { day: 'numeric', month: 'short' });
+    } else if (period === 'month') {
+      key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+      const opts = { month: 'short' };
+      if (d.getFullYear() !== new Date().getFullYear()) opts.year = 'numeric';
+      label = d.toLocaleDateString('he-IL', opts);
+    } else if (period === 'quarter') {
+      const q = Math.floor(d.getMonth() / 3) + 1;
+      key = d.getFullYear() + '-Q' + q;
+      label = 'Q' + q + ' ' + d.getFullYear();
+    } else if (period === 'year') {
+      key = String(d.getFullYear());
+      label = String(d.getFullYear());
+    }
+    if (!groups.has(key)) groups.set(key, { sum: 0, count: 0, label });
+    const g = groups.get(key);
+    g.sum += s.accuracy;
+    g.count++;
+  });
+
+  return Array.from(groups.values()).map(g => ({
+    value: Math.round(g.sum / g.count),
+    label: g.label,
+  }));
 }
 
 // ---- SETTINGS ----
@@ -681,6 +850,57 @@ function loadSettingsUI() {
   document.getElementById('setting-daily-goal').value = settings.dailyGoal;
   document.getElementById('setting-vibrate').checked = settings.vibrate;
   document.getElementById('setting-sound').checked = settings.sound;
+}
+
+function exportData() {
+  const data = {
+    version: 1,
+    exportDate: new Date().toISOString(),
+    stats: { ...stats },
+    settings: { ...settings },
+    bestScore: localStorage.getItem('pi-best') || '0',
+  };
+  const json = JSON.stringify(data, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `pi-game-backup-${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function importData() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        if (!data.version || !data.stats || !data.settings) {
+          alert('קובץ גיבוי לא תקין');
+          return;
+        }
+        Object.assign(stats, data.stats);
+        Object.assign(settings, data.settings);
+        if (data.bestScore) localStorage.setItem('pi-best', data.bestScore);
+        saveData();
+        loadSettingsUI();
+        updateHomeScreen();
+        alert('הנתונים שוחזרו בהצלחה!');
+      } catch {
+        alert('שגיאה בקריאת הקובץ');
+      }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
 }
 
 // ---- KEYBOARD SUPPORT ----
